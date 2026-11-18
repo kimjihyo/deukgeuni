@@ -1,9 +1,9 @@
-# strength-coach-agent
+# 득근이 (strength-coach-agent)
 
-파워빌딩 코치 에이전트. 어떤 LLM 에이전트(Claude, GPT, 사내 봇 …)에든 붙여서 쓸 수 있는 **지침 + 지식 + 도구** 묶음입니다.
+**득근이**는 파워빌딩 코치 에이전트입니다. 어떤 LLM 에이전트(Claude, GPT, 사내 봇 …)에든 붙여서 쓸 수 있는 **지침 + 지식 + 도구** 묶음입니다.
 운동을 대화로 말하면 기록하고, e1RM·볼륨을 계산하고, 근거 기반으로 다음 루틴을 짜 줍니다.
 
-*A model-agnostic powerbuilding coach for LLM agents: plain-Markdown instructions, evidence cards, and a stdlib-only Python CLI for logging and calculations. Docs are in Korean.*
+*Deukgeun-i ("gains buddy") — a model-agnostic powerbuilding coach for LLM agents: plain-Markdown instructions, evidence cards, and a stdlib-only Python CLI for logging and calculations. Docs are in Korean.*
 
 - 현재 전문: **파워빌딩** / 확장 중: 파워리프팅, 보디빌딩 (`docs/goals/`)
 - 의존성 없음: Markdown + Python 표준 라이브러리
