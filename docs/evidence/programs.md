@@ -3,7 +3,7 @@
 검증된 프로그램 방식 요약 (논문이 아닌 코치·서적 기반이라 근거 수준이 낮음).
 
 ## RTS (Reactive Training Systems)
-Mike Tuchscherer · 프로그램 / 숙련 / https://elitefts.com/education/a-reactive-training-manual-overview
+Mike Tuchscherer · 프로그램 / 숙련 / 출처: RTS 매뉴얼에 대한 제3자 개관 글 (EliteFTS 교육 자료)
 - **처방**: RPE 차트로 탑세트 무게를 정하고, 그날 탑세트로 e1RM을 다시 계산해 다음 무게를 정한다.
 - **진행**: 점검 세트(RPE 9 안팎)로 당일 컨디션 파악. 피로율(같은 횟수·RPE에서 무게 하락폭)로 볼륨 조절: ≤3% 낮음, 5% 중간, ≥7% 높음.
 - **디로드**: 고정 주기보다 피로 지표(같은 무게 RPE 상승, 피로율 증가)로.

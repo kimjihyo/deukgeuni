@@ -3,11 +3,11 @@
 세트를 실패에 얼마나 가깝게 끝낼지의 근거.
 
 ## Refalo 2024 실패 vs 1–2 RIR 근비대
-RCT / 숙련 / https://doi.org/10.1080/02640414.2024.2321021
+RCT / 숙련 / 출처 식별자: DOI 10.1080/02640414.2024.2321021 (J Sports Sci)
 - **처방**: 1–2 RIR에서 끝내도 실패와 비슷한 대퇴사두 비대 → 보조운동은 RPE 8–9, 실패는 마지막 주·고립 운동에만.
 - **한계**: 18명, 8주, 레그프레스·익스텐션만.
 
 ## Robinson 2024 실패 근접도 메타회귀
-메타분석 / 혼합 / https://rke.abertay.ac.uk/en/publications/exploring-the-dose-response-relationship-between-estimated-resist/
+메타분석 / 혼합 / 출처: 저자 소속 대학(Abertay) 연구 저장소의 논문 기록 — 원문 세부 미확인
 - **처방**: 근비대는 실패에 가까울수록 커지지만 근력은 거의 영향 없음 → 메인 리프트 RPE 7–9, 근비대 보조운동 RPE 8–9.5.
 - **한계**: RIR 사후 추정, 탐색적 분석.
