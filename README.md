@@ -14,7 +14,7 @@
 | 경로 | 내용 |
 | --- | --- |
 | [`AGENTS.md`](AGENTS.md) | 에이전트 진입점: 원칙과 상황별 안내 |
-| [`playbooks/`](playbooks) | 상황별 절차: 온보딩, 기록, 오늘 루틴, 일정 조정, 종목 대체, 블록 짜기, 주간 점검, 테스트 |
+| [`skills/`](skills) | 상황별 절차: 온보딩, 기록, 오늘 루틴, 일정 조정, 종목 대체, 블록 짜기, 주간 점검, 테스트 |
 | [`docs/principles/`](docs/principles) | 공통 원칙: RPE·e1RM, 진행, 볼륨·빈도, 피로·디로드, 종목 선택, 일정, 피킹 |
 | [`docs/goals/`](docs/goals) | 목표별 차이 (파워빌딩 완성, 나머지 준비 중) |
 | [`docs/programs/`](docs/programs) | 블록 템플릿 |
@@ -41,6 +41,7 @@ python3 scripts/wl.py check
 ### 에이전트에 붙이기
 
 - **파일·셸 접근이 되는 에이전트** (Claude Code, Codex, Cursor 등): 레포를 열면 `AGENTS.md`를 읽고 `wl.py`를 직접 실행
+- **스킬을 지원하는 에이전트**: `skills/<이름>/SKILL.md`는 표준 스킬 형식(`name`, `description` 머리말)이라 그대로 등록할 수 있습니다. 예: Claude Code는 `mkdir -p .claude && ln -s ../skills .claude/skills`. 스킬 본문의 경로는 레포 루트 기준입니다
 - **챗봇·슬랙 봇**: 시스템 프롬프트에 `AGENTS.md`, 도구로 `wl.py` 명령 노출, 대화마다 사용자 데이터의 `status.md`·`profile.md`를 읽게 구성
 
 ## CLI 맛보기

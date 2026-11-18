@@ -1,3 +1,8 @@
+---
+name: peaking-test
+description: "1RM 테스트나 시합을 준비할 때(1–2주 전부터 당일까지). 테이퍼, 시기 무게, 당일 진행."
+---
+
 # 피킹과 1RM 테스트
 
 테스트·시합 1–2주 전부터 당일까지. 원칙은 `docs/principles/peaking-testing.md`.
@@ -14,7 +19,7 @@
 
 - 가벼운 싱글 @7 + 소량 백오프, 보조 최소
 - 테스트 전 1–2일 휴식
-- 당일 워밍업 계획을 미리 준다 (`playbooks/daily-session.md` 워밍업 표 + 2차 시기 직전까지)
+- 당일 워밍업 계획을 미리 준다 (`skills/daily-session/SKILL.md` 워밍업 표 + 2차 시기 직전까지)
 
 ## 당일
 
@@ -24,5 +29,5 @@
 
 ## 후
 
-- 결과 기록, 블록 회고 (`playbooks/plan-block.md`의 "블록 종료 시 회고")
+- 결과 기록, 블록 회고 (`skills/plan-block/SKILL.md`의 "블록 종료 시 회고")
 - 테스트 직후 1주는 가볍게(근비대 블록 W1 또는 디로드)

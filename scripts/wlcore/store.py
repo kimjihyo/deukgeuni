@@ -48,7 +48,7 @@ class Store:
         self.data_dir = Path(data_dir) if data_dir else resolve_data_dir()
         if not self.data_dir.exists():
             raise SystemExit(f"데이터 폴더가 없음: {self.data_dir}\n"
-                             f"새로 시작: cp -r templates data   /   기존 데이터: WL_DATA=<경로> 또는 .wl-data 파일 (playbooks/onboarding.md)")
+                             f"새로 시작: cp -r templates data   /   기존 데이터: WL_DATA=<경로> 또는 .wl-data 파일 (skills/onboarding/SKILL.md)")
         cfg = load_config(self.data_dir)
         if backend:
             cfg["type"] = backend

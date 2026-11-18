@@ -6,20 +6,20 @@
 
 ## 매 대화 시작
 
-1. 사용자 데이터 폴더 찾기: `WL_DATA` 환경변수 → 레포 루트의 `.wl-data` 파일 → `./data`. 없으면 [`playbooks/onboarding.md`](playbooks/onboarding.md)
+1. 사용자 데이터 폴더 찾기: `WL_DATA` 환경변수 → 레포 루트의 `.wl-data` 파일 → `./data`. 없으면 [`skills/onboarding/SKILL.md`](skills/onboarding/SKILL.md)
 2. 데이터 폴더의 `status.md`(현재 블록·다음 세션·미해결 질문)와 `profile.md`(목표·제약·개인 규칙)를 읽는다
-3. 아래 표에서 상황에 맞는 playbook을 읽고 따른다. 다른 문서는 필요할 때만
+3. 아래 표에서 상황에 맞는 skill을 읽고 따른다. 다른 문서는 필요할 때만
 
 | 사용자가… | 읽을 것 |
 | --- | --- |
-| 처음이다 / 데이터가 없다 | [playbooks/onboarding.md](playbooks/onboarding.md) |
-| 운동 결과를 말한다 | [playbooks/log-workout.md](playbooks/log-workout.md) |
-| 오늘 루틴·워밍업·무게를 묻는다 | [playbooks/daily-session.md](playbooks/daily-session.md) |
-| 운동을 못 했다 / 일정을 바꾸고 싶다 | [playbooks/reschedule.md](playbooks/reschedule.md) |
-| 종목을 바꾸고 싶다 / 기구가 없다 / 아프다 | [playbooks/exercise-swap.md](playbooks/exercise-swap.md) |
-| 새 블록이 필요하다 / 블록이 끝났다 | [playbooks/plan-block.md](playbooks/plan-block.md) |
-| 한 주를 돌아본다 / 진행 상황을 묻는다 | [playbooks/weekly-review.md](playbooks/weekly-review.md) |
-| 1RM 테스트·시합을 준비한다 | [playbooks/peaking-test.md](playbooks/peaking-test.md) |
+| 처음이다 / 데이터가 없다 | [skills/onboarding/SKILL.md](skills/onboarding/SKILL.md) |
+| 운동 결과를 말한다 | [skills/log-workout/SKILL.md](skills/log-workout/SKILL.md) |
+| 오늘 루틴·워밍업·무게를 묻는다 | [skills/daily-session/SKILL.md](skills/daily-session/SKILL.md) |
+| 운동을 못 했다 / 일정을 바꾸고 싶다 | [skills/reschedule/SKILL.md](skills/reschedule/SKILL.md) |
+| 종목을 바꾸고 싶다 / 기구가 없다 / 아프다 | [skills/exercise-swap/SKILL.md](skills/exercise-swap/SKILL.md) |
+| 새 블록이 필요하다 / 블록이 끝났다 | [skills/plan-block/SKILL.md](skills/plan-block/SKILL.md) |
+| 한 주를 돌아본다 / 진행 상황을 묻는다 | [skills/weekly-review/SKILL.md](skills/weekly-review/SKILL.md) |
+| 1RM 테스트·시합을 준비한다 | [skills/peaking-test/SKILL.md](skills/peaking-test/SKILL.md) |
 | 이유·원리를 묻는다 | `docs/principles/`, `docs/goals/<goal>.md`, `docs/evidence/` |
 
 ## 원칙
@@ -38,7 +38,7 @@
 ## 지도
 
 ```
-playbooks/        상황별 작업 절차
+skills/           상황별 작업 절차 (표준 스킬 형식 skills/<이름>/SKILL.md, 본문 경로는 레포 루트 기준)
 docs/principles/  공통 원칙: RPE·e1RM, 진행, 볼륨·빈도, 피로·디로드, 종목 선택, 일정, 피킹
 docs/goals/       목표별: powerbuilding(기본), powerlifting·bodybuilding(준비 중)
 docs/programs/    블록 템플릿

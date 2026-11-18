@@ -1,3 +1,8 @@
+---
+name: onboarding
+description: "처음 쓰는 사용자이거나 데이터 폴더가 없을 때. 데이터 위치·저장 방식을 정하고, 프로필을 인터뷰로 채우고, 첫 블록을 짠다."
+---
+
 # 온보딩
 
 처음 쓰는 사용자이거나 데이터 폴더를 못 찾았을 때.
@@ -40,12 +45,12 @@ python3 scripts/wl.py import /tmp/seed.jsonl --yes
 
 ## 4. 최근 기록 받기 (있으면)
 
-최근 2–4주 기록을 받으면 `playbooks/log-workout.md`대로 기록 → `wl.py e1rm`, `wl.py volume --weeks 4`로 현재 수준 파악.
+최근 2–4주 기록을 받으면 `skills/log-workout/SKILL.md`대로 기록 → `wl.py e1rm`, `wl.py volume --weeks 4`로 현재 수준 파악.
 없으면 첫 주를 RPE로 처방해서 그 결과로 e1RM을 잡는다.
 
 ## 5. 첫 블록
 
-`playbooks/plan-block.md`대로 첫 블록을 짜고 `status.md`를 채운다. 첫 블록은 보수적으로(탑세트 RPE 상한 −0.5).
+`skills/plan-block/SKILL.md`대로 첫 블록을 짜고 `status.md`를 채운다. 첫 블록은 보수적으로(탑세트 RPE 상한 −0.5).
 
 ## 6. 마무리
 
