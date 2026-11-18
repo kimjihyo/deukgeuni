@@ -10,7 +10,7 @@
    Store  ── 검사(model.validate) 통과해야 저장
        │  load(table) / save(table, rows)
        ▼
- Backend:  csv │ jsonl │ sqlite │ (직접 추가: postgres, mongodb, sheets …)
+ Backend:  csv │ jsonl │ sqlite │ mongodb(다중 사용자) │ (직접 추가: postgres, sheets …)
 ```
 
 ## 고르기
@@ -31,7 +31,7 @@ type = "csv"          # csv | jsonl | sqlite
 | `csv` (기본) | 사람이 읽기 쉬움, 엑셀로 열림, git diff 깔끔 | 타입 정보 없음 | git으로 관리할 때 |
 | `jsonl` | 타입 보존, git diff 깔끔, `mongoimport`로 바로 MongoDB 이전 | 표로 보기 불편 | 다른 도구로 넘길 때 |
 | `sqlite` | SQL로 바로 분석 (`sqlite3 <데이터 폴더>/workout.db`), 서버 없음 | 바이너리라 git diff 안 보임 | 로컬 분석용 |
-| 서버 DB (직접 추가) | 여러 기기·앱에서 동시 접근 | 서버·접속 정보 필요. **클라우드 AI 세션은 외부 DB 접속이 막혀 있을 수 있음** | 앱을 만들 때 |
+| `mongodb` | 여러 사용자·봇·앱에서 동시 접근, 사용자별 분리(`user_id`) | 서버·접속 정보 필요(`pip install pymongo`). **클라우드 AI 세션은 외부 DB 접속이 막혀 있을 수 있음** | 메신저 봇 (`docs/deploy-telegram.md`) |
 
 추가 설치 없이 되는 것: `csv`, `jsonl`, `sqlite` (파이썬 표준 라이브러리).
 
@@ -97,37 +97,26 @@ class PostgresBackend(Backend):
         self.conn.close()
 ```
 
-### 예: MongoDB (스케치, 미검증)
+### MongoDB (구현됨: `scripts/wlcore/backends/mongodb.py`)
 
-```python
-# scripts/wlcore/backends/mongodb.py    — pip install pymongo
-import os
-from pymongo import MongoClient
-from .base import Backend
+여러 사용자를 한 DB에 둔다. 모든 문서에 `user_id`가 있고, Store는 자기 사용자 것만 본다.
+기록(`exercises`, `sessions`, `sets`)과 사용자 문서(`docs` 컬렉션: profile.md 등)를 함께 저장한다.
 
-class MongoBackend(Backend):
-    name = "mongodb"
-    def __init__(self, options):
-        super().__init__(options)
-        self.client = MongoClient(os.environ["WL_MONGO_URI"])
-        self.db = self.client[options.get("database", "workout")]
-    def load(self, t):
-        return list(self.db[t.name].find({}, {"_id": 0}))
-    def save(self, t, rows):
-        # 단일 노드에서는 트랜잭션이 없으니 임시 컬렉션에 쓰고 이름을 바꿔 교체
-        tmp = self.db[f"{t.name}__tmp"]
-        tmp.drop()
-        if rows:
-            tmp.insert_many([{k: v for k, v in r.items() if v is not None} for r in rows])
-            tmp.rename(t.name, dropTarget=True)
-        else:
-            self.db[t.name].drop()
-    def close(self):
-        self.client.close()
+```toml
+# 데이터 폴더 config.toml (한 사용자로 CLI를 쓸 때)
+[backend]
+type = "mongodb"
+user = "tg:123456789"
+database = "deukgeuni"
+# 접속 문자열은 파일에 쓰지 않고 환경변수 WL_MONGO_URI
 ```
+
+봇은 사용자마다 `Store(config={"type": "mongodb", "user": ..., "client": ...})`를 만든다 (`bot/app.py`).
+테이블 쓰기는 서버가 지원하면 트랜잭션으로 묶는다 (Atlas 지원).
 
 등록:
 ```python
 REGISTRY["postgres"] = "wlcore.backends.postgres:PostgresBackend"
-REGISTRY["mongodb"] = "wlcore.backends.mongodb:MongoBackend"
 ```
+
+DB 백엔드는 데이터 폴더가 없으므로 사용자 문서용 `load_doc` / `save_doc` / `list_docs`도 구현한다 (MongoDB 백엔드 참고).

@@ -28,6 +28,9 @@
   wl.py export [out.jsonl]                전체를 공통 형식(JSON Lines)으로
   wl.py import in.jsonl --yes             현재 저장소를 파일 내용으로 교체
   wl.py backends                          사용 가능한 저장 방식
+
+사용자 문서 (코칭 상태: profile.md, status.md, history.md, blocks/*.md)
+  wl.py doc list | doc get status.md | doc put status.md --text "..." (또는 표준입력)
 """
 from __future__ import annotations
 
@@ -253,7 +256,7 @@ def cmd_check(a, st):
     errs = validate(st.all())
     print("\n".join(errs) if errs else
           f"OK ({st.backend.name}) — exercises {len(st.rows('exercises'))}, sessions {len(st.rows('sessions'))}, sets {len(st.rows('sets'))}")
-    sys.exit(1 if errs else 0)
+    return 1 if errs else 0
 
 
 def cmd_export(a, st):
@@ -279,12 +282,30 @@ def cmd_import(a, st):
     print(f"{st.backend.name}로 가져옴: " + ", ".join(f"{n} {len(v)}" for n, v in data.items()))
 
 
+def cmd_doc_list(a, st):
+    for d in st.docs():
+        print(d)
+
+
+def cmd_doc_get(a, st):
+    text = st.doc(a.path)
+    if text is None:
+        raise SystemExit(f"문서 없음: {a.path}")
+    print(text, end="" if text.endswith("\n") else "\n")
+
+
+def cmd_doc_put(a, st):
+    text = a.text if a.text is not None else sys.stdin.read()
+    st.put_doc(a.path, text)
+    print(f"{a.path} 저장 ({len(text)}자)")
+
+
 def cmd_backends(a, st):
     for n in backends.REGISTRY:
         print(("* " if n == st.backend.name else "  ") + n)
 
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--backend", help="이번 실행만 다른 저장 방식 사용 (WL_BACKEND와 같음)")
     sp = p.add_subparsers(dest="cmd", required=True)
@@ -317,15 +338,25 @@ def main():
     x = sp.add_parser("import"); x.add_argument("file"); x.add_argument("--yes", action="store_true"); x.set_defaults(f=cmd_import)
     x = sp.add_parser("backends"); x.set_defaults(f=cmd_backends)
 
-    a = p.parse_args()
-    st = Store(backend=a.backend)
+    ds = sp.add_parser("doc", help="사용자 문서(profile.md, status.md, blocks/*.md) 읽기·쓰기").add_subparsers(dest="sub", required=True)
+    x = ds.add_parser("list"); x.set_defaults(f=cmd_doc_list)
+    x = ds.add_parser("get"); x.add_argument("path"); x.set_defaults(f=cmd_doc_get)
+    x = ds.add_parser("put"); x.add_argument("path"); x.add_argument("--text", help="없으면 표준입력"); x.set_defaults(f=cmd_doc_put)
+    return p
+
+
+def main(argv: list[str] | None = None, store: Store | None = None) -> int:
+    """CLI entry. Bots call main(argv, store) in-process with their own Store."""
+    a = build_parser().parse_args(argv)
+    st = store or Store(backend=a.backend)
     try:
-        a.f(a, st)
+        return a.f(a, st) or 0
     except ValueError as e:
         raise SystemExit(str(e))
     finally:
-        st.close()
+        if store is None:
+            st.close()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

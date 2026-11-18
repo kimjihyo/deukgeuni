@@ -1,7 +1,8 @@
-"""Store: the only way the CLI touches data. Backend-agnostic."""
+"""Store: the only way the CLI (and bots) touch data. Backend-agnostic."""
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 from pathlib import Path
 
@@ -10,11 +11,23 @@ from .model import TABLES, Table, coerce, key_of, sort_rows, validate
 
 ROOT = Path(__file__).resolve().parents[2]
 
+# Markdown documents that live next to the records (coaching state)
+DOC_RE = re.compile(r"^(?:[a-z0-9_-]+/)?[a-z0-9_.-]+\.md$")
+
+
+def check_doc_path(path: str) -> str:
+    p = path.strip()
+    if p.startswith("./"):
+        p = p[2:]
+    if ".." in p or p.startswith("/") or not DOC_RE.match(p):
+        raise ValueError(f"문서 경로가 올바르지 않음: '{path}' (예: profile.md, status.md, blocks/block-c.md)")
+    return p
+
 
 def load_config(data_dir: Path) -> dict:
     """<data dir>/config.toml:
         [backend]
-        type = "csv"        # csv | jsonl | sqlite | (custom)
+        type = "csv"        # csv | jsonl | sqlite | mongodb | (custom)
         # other keys are passed to the backend, e.g. file = "workout.db" (relative to the data dir)
     Env overrides: WL_DATA (data dir), WL_BACKEND (type)."""
     cfg = {"type": "csv"}
@@ -44,18 +57,26 @@ def resolve_data_dir() -> Path:
 
 
 class Store:
-    def __init__(self, data_dir: Path | None = None, backend: str | None = None):
-        self.data_dir = Path(data_dir) if data_dir else resolve_data_dir()
-        if not self.data_dir.exists():
-            raise SystemExit(f"데이터 폴더가 없음: {self.data_dir}\n"
-                             f"새로 시작: cp -r templates data   /   기존 데이터: WL_DATA=<경로> 또는 .wl-data 파일 (skills/onboarding/SKILL.md)")
-        cfg = load_config(self.data_dir)
+    """Store(data_dir) reads <data_dir>/config.toml.
+    Store(config={...}) uses the given backend config directly (bots, multi-user):
+        Store(config={"type": "mongodb", "user": "tg:123", "uri": ..., "database": ...})"""
+
+    def __init__(self, data_dir: Path | None = None, backend: str | None = None, config: dict | None = None):
+        if config is not None:
+            cfg = dict(config)
+            self.data_dir = Path(cfg["path"]) if cfg.get("path") else None
+        else:
+            self.data_dir = Path(data_dir) if data_dir else resolve_data_dir()
+            if not self.data_dir.exists():
+                raise SystemExit(f"데이터 폴더가 없음: {self.data_dir}\n"
+                                 f"새로 시작: cp -r templates data   /   기존 데이터: WL_DATA=<경로> 또는 .wl-data 파일 (skills/onboarding/SKILL.md)")
+            cfg = load_config(self.data_dir)
         if backend:
             cfg["type"] = backend
         self.backend = backends.get(cfg["type"])(cfg)
         self._cache: dict[str, list[dict]] = {}
 
-    # ---- read ----
+    # ---- records: read ----
     def rows(self, table: str) -> list[dict]:
         if table not in self._cache:
             t = TABLES[table]
@@ -70,7 +91,7 @@ class Store:
         w = coerce(t, where)
         return [r for r in self.rows(table) if all(r[k] == w[k] for k in where)]
 
-    # ---- write (validated, then saved through the backend) ----
+    # ---- records: write (validated, then saved through the backend) ----
     def _commit(self, table: str, rows: list[dict]) -> None:
         t = TABLES[table]
         rows = sort_rows(t, rows)
@@ -117,6 +138,16 @@ class Store:
         for name, rows in clean.items():
             self.backend.save(TABLES[name], rows)
         self._cache = clean
+
+    # ---- documents (profile.md, status.md, history.md, blocks/*.md) ----
+    def doc(self, path: str) -> str | None:
+        return self.backend.load_doc(check_doc_path(path))
+
+    def put_doc(self, path: str, text: str) -> None:
+        self.backend.save_doc(check_doc_path(path), text)
+
+    def docs(self) -> list[str]:
+        return sorted(d for d in self.backend.list_docs() if DOC_RE.match(d))
 
     def close(self):
         self.backend.close()

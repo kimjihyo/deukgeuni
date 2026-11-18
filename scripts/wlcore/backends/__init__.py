@@ -8,6 +8,7 @@ REGISTRY = {
     "csv": "wlcore.backends.files:CsvBackend",
     "jsonl": "wlcore.backends.files:JsonlBackend",
     "sqlite": "wlcore.backends.sqlite:SqliteBackend",
+    "mongodb": "wlcore.backends.mongodb:MongoBackend",   # pip install pymongo, multi-user
 }
 
 

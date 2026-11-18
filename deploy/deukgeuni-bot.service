@@ -1,0 +1,21 @@
+[Unit]
+Description=득근이 Telegram bot (webhook)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=deukgeuni
+WorkingDirectory=/opt/deukgeuni
+EnvironmentFile=/etc/deukgeuni/bot.env
+ExecStart=/opt/deukgeuni/.venv/bin/python -m bot serve
+Restart=always
+RestartSec=5
+# 최소 권한
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/deukgeuni
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# /etc/caddy/Caddyfile — 도메인을 바꾼다. Caddy가 HTTPS 인증서를 자동으로 발급·갱신한다.
+bot.example.com {
+	# 텔레그램 웹훅과 헬스체크만 봇으로 넘기고 나머지는 막는다
+	@bot path /telegram/webhook /healthz
+	handle @bot {
+		reverse_proxy 127.0.0.1:8080
+	}
+	handle {
+		respond 404
+	}
+}

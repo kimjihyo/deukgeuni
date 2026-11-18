@@ -47,7 +47,8 @@ docs/evidence/    근거 카드
 docs/data-format.md, docs/storage.md   데이터 모델, 저장 방식(csv/jsonl/sqlite/…)
 docs/architecture.md   두뇌(이 레포)와 기억(데이터 폴더) 구조, 실행 환경별 연결
 templates/        새 사용자 데이터 폴더 초기 파일
-scripts/wl.py     기록·조회·계산·검사 CLI (파이썬 표준 라이브러리만)
+scripts/wl.py     기록·조회·계산·검사 CLI (파이썬 표준 라이브러리만). 사용자 문서도 `wl.py doc get/put`으로 저장 방식과 무관하게
+bot/, deploy/      텔레그램 봇 실행 환경 (봇 안에서는 bot/agent.py의 실행 규칙이 함께 주어진다)
 ```
 
 ## 데이터 폴더 (사용자별, 이 레포 밖)
