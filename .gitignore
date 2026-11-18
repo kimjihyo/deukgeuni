@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+# 개인 데이터는 이 레포에 커밋하지 않는다 (data/는 로컬 전용, 또는 별도 레포를 WL_DATA로)
+data/
+.wl-data

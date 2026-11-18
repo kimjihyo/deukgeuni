@@ -1,0 +1,3 @@
+# 저장 방식 설정 (docs/storage.md)
+[backend]
+type = "csv"   # csv | jsonl | sqlite
