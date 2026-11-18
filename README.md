@@ -1,4 +1,4 @@
-# 득근이 (strength-coach-agent)
+# 득근이 (deukgeuni)
 
 **득근이**는 파워빌딩 코치 에이전트입니다. 어떤 LLM 에이전트(Claude, GPT, 사내 봇 …)에든 붙여서 쓸 수 있는 **지침 + 지식 + 도구** 묶음입니다.
 운동을 대화로 말하면 기록하고, e1RM·볼륨을 계산하고, 근거 기반으로 다음 루틴을 짜 줍니다.
@@ -20,14 +20,15 @@
 | [`docs/programs/`](docs/programs) | 블록 템플릿 |
 | [`docs/evidence/`](docs/evidence) | 근거 카드 (DOI 포함). 에이전트는 여기서만 인용 |
 | [`docs/data-format.md`](docs/data-format.md), [`docs/storage.md`](docs/storage.md) | 데이터 모델, 저장 방식 (csv / jsonl / sqlite / 직접 추가) |
+| [`docs/architecture.md`](docs/architecture.md) | 두뇌(이 레포)와 기억(사용자 데이터)의 구조, 봇에 붙일 때 흐름 |
 | [`templates/`](templates) | 새 사용자 데이터 폴더 초기 파일 |
 | [`scripts/wl.py`](scripts/wl.py) | 기록·조회·e1RM·볼륨·검사·이전 CLI |
 
 ## 시작하기
 
 ```bash
-git clone https://github.com/kimjihyo/strength-coach-agent
-cd strength-coach-agent
+git clone https://github.com/kimjihyo/deukgeuni
+cd deukgeuni
 
 # 데이터 폴더 준비 (둘 중 하나)
 cp -r templates data                                  # 로컬 전용 (gitignore됨)

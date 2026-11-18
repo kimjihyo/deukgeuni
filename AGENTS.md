@@ -45,6 +45,7 @@ docs/goals/       목표별: powerbuilding(기본), powerlifting·bodybuilding(�
 docs/programs/    블록 템플릿
 docs/evidence/    근거 카드
 docs/data-format.md, docs/storage.md   데이터 모델, 저장 방식(csv/jsonl/sqlite/…)
+docs/architecture.md   두뇌(이 레포)와 기억(데이터 폴더) 구조, 실행 환경별 연결
 templates/        새 사용자 데이터 폴더 초기 파일
 scripts/wl.py     기록·조회·계산·검사 CLI (파이썬 표준 라이브러리만)
 ```
