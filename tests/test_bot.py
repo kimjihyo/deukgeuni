@@ -122,6 +122,16 @@ class BotTests(unittest.TestCase):
         app.handle_update(update(111, "/reset", 8))
         self.assertIn("지웠어요", app.tg.sent[-1][1])
 
+    def test_link_code_for_other_apps(self):
+        app = make_app(ScriptedLLM([]))
+        app.handle_update(update(111, "/link", 31))
+        msg = app.tg.sent[-1][1]
+        self.assertIn("연결 코드", msg)
+        code = msg.split("연결 코드: ")[1].split()[0]
+        from mcp_server import linkcodes
+        self.assertEqual(linkcodes.redeem(app.db, code), "tg:111")
+        self.assertIsNone(linkcodes.redeem(app.db, code))  # single use
+
     def test_tool_guards(self):
         from bot.tools import run_tool
         st = make_app(ScriptedLLM([])).store_for("tg:1")

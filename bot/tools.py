@@ -12,11 +12,7 @@ from .config import REPO
 from .llm import Tool
 
 sys.path.insert(0, str(REPO / "scripts"))
-import wl  # noqa: E402  (the same CLI people use locally)
-
-# repo knowledge the model may read (never user data, never secrets)
-KNOWLEDGE_ROOTS = ("AGENTS.md", "docs/", "skills/")
-BLOCKED_WL = {"import", "export", "backends"}  # file-system / storage admin: not for the model
+from wlcore import service  # noqa: E402  (same operations as the CLI and the MCP server)
 
 TOOLS = [
     Tool("wl",
@@ -39,55 +35,19 @@ TOOLS = [
 ]
 
 
-def _run_wl(store, args: str) -> str:
-    try:
-        argv = shlex.split(args)
-    except ValueError as e:
-        return f"인자 해석 실패: {e}"
-    if not argv:
-        return "args가 비었음"
-    if argv[0] in BLOCKED_WL or "--backend" in argv:
-        return f"'{argv[0]}'는 봇에서 쓸 수 없는 명령"
-    out, err = io.StringIO(), io.StringIO()
-    code = 0
-    try:
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            code = wl.main(argv, store=store)
-    except SystemExit as e:  # argparse errors and wl.py validation failures
-        code = e.code if isinstance(e.code, int) else 1
-        if e.code and not isinstance(e.code, int):
-            err.write(str(e.code))
-    text = (out.getvalue() + err.getvalue()).strip() or "(출력 없음)"
-    return text if code == 0 else f"[실패 {code}] {text}"
-
-
-def _read_knowledge(path: str) -> str:
-    if not path:
-        files = [str(p.relative_to(REPO)) for root in KNOWLEDGE_ROOTS
-                 for p in ([REPO / root] if root.endswith(".md") else sorted((REPO / root).rglob("*.md")))]
-        return "\n".join(files)
-    p = (REPO / path).resolve()
-    rel = str(p.relative_to(REPO)) if p.is_relative_to(REPO) else ""
-    if not rel or not any(rel == r or rel.startswith(r) for r in KNOWLEDGE_ROOTS) or p.suffix != ".md" or not p.exists():
-        return f"읽을 수 없는 경로: {path}"
-    return p.read_text(encoding="utf-8")
-
-
 def run_tool(store, name: str, inp: dict) -> str:
     try:
         if name == "wl":
-            return _run_wl(store, inp.get("args", ""))
+            return service.run_wl(store, inp.get("args", ""))
         if name == "read_knowledge":
-            return _read_knowledge((inp.get("path") or "").strip())
+            return service.read_knowledge(inp.get("path") or "")
         if name == "user_doc_get":
-            path = (inp.get("path") or "").strip()
-            if not path:
-                return "\n".join(store.docs()) or "(문서 없음)"
-            text = store.doc(path)
-            return text if text is not None else f"문서 없음: {path}"
+            return service.get_doc(store, inp.get("path") or "")
         if name == "user_doc_put":
-            store.put_doc(inp["path"], inp["content"])
-            return f"{inp['path']} 저장됨"
+            return service.put_doc(store, inp["path"], inp["content"])
         return f"알 수 없는 도구: {name}"
+    except service.ServiceError as e:
+        msg = str(e)
+        return msg if msg.startswith("[실패") else f"[실패] {msg}"
     except (ValueError, KeyError) as e:
         return f"[실패] {e}"

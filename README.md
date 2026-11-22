@@ -22,6 +22,7 @@
 | [`docs/data-format.md`](docs/data-format.md), [`docs/storage.md`](docs/storage.md) | 데이터 모델, 저장 방식 (csv / jsonl / sqlite / 직접 추가) |
 | [`docs/architecture.md`](docs/architecture.md) | 두뇌(이 레포)와 기억(사용자 데이터)의 구조, 봇에 붙일 때 흐름 |
 | [`templates/`](templates) | 새 사용자 데이터 폴더 초기 파일 |
+| [`mcp_server/`](mcp_server) | MCP 서버 (도구·프롬프트·리소스 + OAuth 로그인) |
 | [`bot/`](bot), [`deploy/`](deploy) | 텔레그램 봇과 EC2 배포 파일 |
 | [`scripts/wl.py`](scripts/wl.py) | 기록·조회·e1RM·볼륨·검사·이전 CLI |
 
@@ -44,6 +45,7 @@ python3 scripts/wl.py check
 
 - **파일·셸 접근이 되는 에이전트** (Claude Code, Codex, Cursor 등): 레포를 열면 `AGENTS.md`를 읽고 `wl.py`를 직접 실행
 - **스킬을 지원하는 에이전트**: `skills/<이름>/SKILL.md`는 표준 스킬 형식(`name`, `description` 머리말)이라 그대로 등록할 수 있습니다. 예: Claude Code는 `mkdir -p .claude && ln -s ../skills .claude/skills`. 스킬 본문의 경로는 레포 루트 기준입니다
+- **MCP를 지원하는 앱** (Claude 앱, ChatGPT, Claude Code, Cursor …): `mcp_server/`를 원격 MCP 서버로 연결 (OAuth). [`docs/mcp.md`](docs/mcp.md)
 - **텔레그램 봇** (구현됨: `bot/`): 웹훅 + MongoDB(사용자별) + Claude/OpenAI 선택. 배포는 [`docs/deploy-telegram.md`](docs/deploy-telegram.md)
 - **다른 메신저**: `bot/app.py`의 텔레그램 부분만 바꾸면 된다 (에이전트·도구·저장은 공통)
 

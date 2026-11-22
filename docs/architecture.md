@@ -32,6 +32,7 @@
 | --- | --- | --- | --- |
 | 채팅 앱 + 스킬 (Claude 등) | 대화 시작 때 레포를 열고 AGENTS.md | 데이터 레포에 커밋·푸시 | 앱의 대화 기록 |
 | 코딩 에이전트 (Claude Code, Codex 등) | 레포를 열면 자동 | 데이터 레포에 커밋·푸시 | 세션 기록 |
+| MCP 지원 앱 (Claude 앱, ChatGPT …; `mcp_server/`) | 서버 안내문·프롬프트·리소스, 도구로 skills 읽기 | MongoDB (OAuth 토큰의 사용자) | 앱의 대화 기록 |
 | 메신저 봇 (텔레그램 구현: `bot/`) | 시스템 프롬프트 = AGENTS.md + 봇 실행 규칙 + 스킬 목록, 도구 = wl · read_knowledge · user_doc_get/put | MongoDB (사용자별), 매일 데이터 git 레포로 백업 | `conversations` 컬렉션에 사용자별 최근 N개 (메신저 API는 지난 대화를 다시 주지 않음) |
 
 ## 메신저 봇의 한 메시지 처리 흐름

@@ -19,6 +19,7 @@ HELP = """득근이예요. 운동한 걸 편하게 말해 주시면 기록하고
 예) "스쿼트 160 4개 rpe9", "오늘 루틴", "월화 못 했어", "이번 주 어땠어?"
 
 /reset  최근 대화 맥락 지우기 (기록·계획은 그대로)
+/link  다른 앱(Claude, ChatGPT 등)에 득근이를 연결할 코드 받기
 /whoami  내 텔레그램 ID 보기"""
 
 
@@ -43,16 +44,13 @@ class BotApp:
 
     def ensure_user_data(self, uid: str) -> bool:
         """First contact: seed the user's data from templates/. Returns True if seeded."""
+        from wlcore import service
         st = self.store_for(uid)
         try:
-            if st.rows("exercises") or st.docs():
-                return False
-            tpl = Store(data_dir=REPO / "templates", backend="csv")
-            st.replace_all(tpl.all())
-            for d in tpl.docs():
-                st.put_doc(d, tpl.doc(d))
-            log.info("seeded new user %s", uid)
-            return True
+            seeded = service.seed_from_templates(st)
+            if seeded:
+                log.info("seeded new user %s", uid)
+            return seeded
         finally:
             st.close()
 
@@ -97,6 +95,11 @@ class BotApp:
                 if not seeded:
                     return
                 text = "안녕, 처음이야. 시작하자"
+            if text == "/link":
+                from mcp_server import linkcodes
+                code = linkcodes.issue(self.db, uid)
+                self.tg.send(chat_id, f"연결 코드: {code}\n\n15분 안에, 한 번만 쓸 수 있어요. 앱에서 득근이 커넥터를 추가하면 뜨는 연결 화면에 넣으세요.")
+                return
             if text == "/reset":
                 n = self.memory.forget(uid)
                 self.tg.send(chat_id, f"최근 대화 {n}개를 지웠어요. 기록과 계획은 그대로예요.")

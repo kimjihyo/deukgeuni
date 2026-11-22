@@ -1,4 +1,6 @@
-# 텔레그램 봇 배포 (EC2 + 웹훅 + MongoDB Atlas)
+# 서버 배포: 텔레그램 봇 + MCP (EC2 + 웹훅 + MongoDB Atlas)
+
+한 서버에 텔레그램 봇(8080)과 MCP 서버(8081, [`mcp.md`](mcp.md))를 함께 띄운다. Caddy가 경로로 나눈다.
 
 득근이를 텔레그램 봇으로 띄우는 방법. 구조는 [`architecture.md`](architecture.md)의 "메신저 봇" 행.
 
@@ -47,12 +49,13 @@ sudo nano /etc/deukgeuni/bot.env
 ## 3. 시작과 웹훅 등록
 
 ```bash
-sudo systemctl start deukgeuni-bot
-sudo journalctl -u deukgeuni-bot -f            # 로그
+sudo systemctl start deukgeuni-bot deukgeuni-mcp
+sudo journalctl -u deukgeuni-bot -u deukgeuni-mcp -f   # 로그
+curl -s https://bot.내도메인/.well-known/oauth-authorization-server   # MCP OAuth 메타데이터가 JSON으로 나오면 정상
 curl https://bot.내도메인/healthz              # ok 가 나오면 Caddy·인증서·봇 연결 정상
 sudo -u deukgeuni bash -c 'cd /opt/deukgeuni && set -a && . /etc/deukgeuni/bot.env && set +a && .venv/bin/python -m bot set-webhook'
 ```
-텔레그램에서 봇에게 `/start`.
+텔레그램에서 봇에게 `/start`. 다른 앱 연결은 봇에게 `/link`로 코드를 받아 [`mcp.md`](mcp.md)의 "앱에 연결하기"대로.
 
 ## 4. 기존 기록 옮기기 (선택)
 
@@ -74,7 +77,8 @@ sudo -u deukgeuni bash -c 'cd /opt/deukgeuni && set -a && . /etc/deukgeuni/bot.e
 
 | 할 일 | 명령 |
 | --- | --- |
-| 코드 업데이트 | `cd /opt/deukgeuni && sudo -u deukgeuni git pull && sudo systemctl restart deukgeuni-bot` |
+| 코드 업데이트 | `cd /opt/deukgeuni && sudo -u deukgeuni git pull && sudo systemctl restart deukgeuni-bot deukgeuni-mcp` |
+| MCP 연결 코드·토큰 | `python -m mcp_server issue-code` / `issue-token` / `revoke` (`docs/mcp.md`) |
 | 로그 | `sudo journalctl -u deukgeuni-bot -n 200` (LLM 사용량·캐시 적중 `cache_read_input_tokens`도 여기) |
 | 웹훅 해제 | `python -m bot delete-webhook` |
 | 공개 주소 없이 테스트 | 서비스를 멈추고 `python -m bot poll` (폴링은 웹훅을 자동 해제함. 끝나면 `set-webhook` 다시) |
@@ -92,7 +96,7 @@ sudo -u deukgeuni bash -c 'cd /opt/deukgeuni && set -a && . /etc/deukgeuni/bot.e
 ## 테스트 (로컬, 네트워크 없이)
 
 ```bash
-pip install mongomock anthropic openai pymongo
+pip install mongomock anthropic openai pymongo mcp
 python3 -m unittest discover -s tests -v
 ```
 가짜 텔레그램·가짜 LLM·메모리 MongoDB로 온보딩, 기록, 사용자 분리, 웹훅 비밀값, 백업 왕복, 두 LLM 요청 형식을 확인한다.

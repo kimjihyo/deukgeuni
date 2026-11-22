@@ -30,12 +30,9 @@ RUNTIME_NOTES = """\
 
 
 def skills_index() -> str:
+    from wlcore import service
     lines = ["## 스킬 목록 (필요할 때 read_knowledge로 본문을 읽는다)"]
-    for p in sorted((REPO / "skills").glob("*/SKILL.md")):
-        fm = p.read_text(encoding="utf-8").split("---")[1]
-        name = re.search(r"^name:\s*(.+)$", fm, re.M).group(1).strip().strip('"')
-        desc = re.search(r"^description:\s*(.+)$", fm, re.M).group(1).strip().strip('"')
-        lines.append(f"- {name}: {desc} → skills/{name}/SKILL.md")
+    lines += [f"- {name}: {desc} → skills/{name}/SKILL.md" for name, desc in service.skills()]
     return "\n".join(lines)
 
 

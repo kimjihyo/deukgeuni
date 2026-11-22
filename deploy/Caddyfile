@@ -1,9 +1,16 @@
 # /etc/caddy/Caddyfile — 도메인을 바꾼다. Caddy가 HTTPS 인증서를 자동으로 발급·갱신한다.
 bot.example.com {
-	# 텔레그램 웹훅과 헬스체크만 봇으로 넘기고 나머지는 막는다
+	# 텔레그램 봇 (웹훅)
 	@bot path /telegram/webhook /healthz
 	handle @bot {
 		reverse_proxy 127.0.0.1:8080
+	}
+	# MCP 서버 (Claude, ChatGPT 등) + OAuth 로그인
+	@mcp path /mcp /mcp/* /.well-known/oauth-authorization-server /.well-known/oauth-protected-resource /.well-known/oauth-protected-resource/* /authorize /token /register /revoke /login
+	handle @mcp {
+		reverse_proxy 127.0.0.1:8081 {
+			flush_interval -1
+		}
 	}
 	handle {
 		respond 404

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # EC2 (Ubuntu 24.04, ARM t4g 계열 권장)에서 한 번 실행: sudo bash setup-ec2.sh bot.example.com
-# 하는 일: 패키지 설치 → deukgeuni 사용자 → 코드 받기 → venv → systemd → Caddy(HTTPS)
+# 하는 일: 패키지 설치 → deukgeuni 사용자 → 코드 받기 → venv → systemd(봇 + MCP) → Caddy(HTTPS)
 set -euo pipefail
 DOMAIN="${1:?사용: sudo bash setup-ec2.sh <봇 도메인, 예: bot.example.com>}"
 REPO_URL="${REPO_URL:-https://github.com/kimjihyo/deukgeuni}"
@@ -14,7 +14,7 @@ if [ ! -d /opt/deukgeuni/.git ]; then
 fi
 chown -R deukgeuni:deukgeuni /opt/deukgeuni
 sudo -u deukgeuni python3 -m venv /opt/deukgeuni/.venv
-sudo -u deukgeuni /opt/deukgeuni/.venv/bin/pip install -q -r /opt/deukgeuni/bot/requirements.txt
+sudo -u deukgeuni /opt/deukgeuni/.venv/bin/pip install -q -r /opt/deukgeuni/bot/requirements.txt -r /opt/deukgeuni/mcp_server/requirements.txt
 
 mkdir -p /etc/deukgeuni
 if [ ! -f /etc/deukgeuni/bot.env ]; then
@@ -25,9 +25,9 @@ fi
 chown root:deukgeuni /etc/deukgeuni/bot.env
 chmod 640 /etc/deukgeuni/bot.env
 
-cp /opt/deukgeuni/deploy/deukgeuni-bot.service /etc/systemd/system/
+cp /opt/deukgeuni/deploy/deukgeuni-bot.service /opt/deukgeuni/deploy/deukgeuni-mcp.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable deukgeuni-bot
+systemctl enable deukgeuni-bot deukgeuni-mcp
 
 sed "s/bot.example.com/${DOMAIN}/" /opt/deukgeuni/deploy/Caddyfile > /etc/caddy/Caddyfile
 systemctl reload caddy || systemctl restart caddy
@@ -36,7 +36,7 @@ cat <<EOF
 
 설치 완료. 다음 순서:
   1) sudo nano /etc/deukgeuni/bot.env   (TELEGRAM_BOT_TOKEN, ALLOWED_TELEGRAM_IDS, API 키, WL_MONGO_URI 채우기)
-  2) sudo systemctl start deukgeuni-bot && sudo journalctl -u deukgeuni-bot -f
+  2) sudo systemctl start deukgeuni-bot deukgeuni-mcp && sudo journalctl -u deukgeuni-bot -u deukgeuni-mcp -f
   3) curl https://${DOMAIN}/healthz        → ok
   4) sudo -u deukgeuni bash -c 'cd /opt/deukgeuni && set -a && . /etc/deukgeuni/bot.env && set +a && .venv/bin/python -m bot set-webhook'
 EOF
