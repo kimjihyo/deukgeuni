@@ -20,7 +20,11 @@ class Config:
     public_url: str = ""                 # https://bot.example.com  (webhook mode)
     listen_host: str = "127.0.0.1"
     listen_port: int = 8080
+    signup_mode: str = "open"            # open: 누구나 바로 시작 | allowlist: ALLOWED_TELEGRAM_IDS만
     allowed_ids: set[int] = field(default_factory=set)
+    admin_ids: set[int] = field(default_factory=set)   # 한도 없음
+    daily_user_limit: int = 150          # 사용자당 하루 메시지 (0 = 무제한)
+    daily_total_limit: int = 3000        # 전체 하루 메시지 (0 = 무제한)
     llm_provider: str = "anthropic"      # anthropic | openai
     llm_model: str = ""
     max_tokens: int = 1500
@@ -39,7 +43,11 @@ class Config:
             public_url=e("PUBLIC_URL", "").rstrip("/"),
             listen_host=e("LISTEN_HOST", "127.0.0.1"),
             listen_port=int(e("LISTEN_PORT", "8080")),
+            signup_mode=e("SIGNUP_MODE", "open"),
             allowed_ids=_ids(e("ALLOWED_TELEGRAM_IDS", "")),
+            admin_ids=_ids(e("ADMIN_TELEGRAM_IDS", "")),
+            daily_user_limit=int(e("DAILY_USER_LIMIT", "150")),
+            daily_total_limit=int(e("DAILY_TOTAL_LIMIT", "3000")),
             llm_provider=e("LLM_PROVIDER", "anthropic"),
             llm_model=e("LLM_MODEL", ""),
             max_tokens=int(e("LLM_MAX_TOKENS", "1500")),

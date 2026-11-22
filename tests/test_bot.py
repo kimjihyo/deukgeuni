@@ -27,9 +27,13 @@ from wlcore.store import Store  # noqa: E402
 class FakeTelegram:
     def __init__(self):
         self.sent: list[tuple[int, str]] = []
+        self.docs: list[tuple[int, str, bytes]] = []
 
     def send(self, chat_id, text):
         self.sent.append((chat_id, text))
+
+    def send_document(self, chat_id, filename, data, caption=""):
+        self.docs.append((chat_id, filename, data))
 
     def typing(self, chat_id):
         pass
@@ -53,8 +57,8 @@ def update(uid, text, update_id=1, chat_type="private"):
     return {"update_id": update_id, "message": {"chat": {"id": uid, "type": chat_type}, "from": {"id": uid, "first_name": "t"}, "text": text}}
 
 
-def make_app(llm, allowed=(111,)):
-    cfg = Config(allowed_ids=set(allowed), telegram_token="x", llm_model="m")
+def make_app(llm, allowed=(111,), mode="open", **kw):
+    cfg = Config(allowed_ids=set(allowed), signup_mode=mode, telegram_token="x", llm_model="m", **kw)
     client = mongomock.MongoClient()
     return BotApp(cfg, client["deukgeuni"], llm, FakeTelegram(), mongo_client=client)
 
@@ -102,12 +106,12 @@ class BotTests(unittest.TestCase):
 
     def test_users_are_isolated_and_blocked_users_rejected(self):
         llm = ScriptedLLM([[("wl", {"args": "session add 2026-11-21"})], "ok"])
-        app = make_app(llm, allowed=(111, 222))
+        app = make_app(llm, allowed=(111, 222), mode="allowlist")
         app.handle_update(update(111, "기록", 1))
         self.assertEqual(len(app.store_for("tg:111").rows("sessions")), 1)
         self.assertEqual(len(app.store_for("tg:222").rows("sessions")), 0)
         app.handle_update(update(999, "hi", 2))
-        self.assertIn("등록되지 않은", app.tg.sent[-1][1])
+        self.assertIn("초대된", app.tg.sent[-1][1])
         app.handle_update(update(999, "/whoami", 3))
         self.assertIn("999", app.tg.sent[-1][1])
         app.handle_update(update(111, "group msg", 4, chat_type="group"))
@@ -128,7 +132,7 @@ class BotTests(unittest.TestCase):
         msg = app.tg.sent[-1][1]
         self.assertIn("연결 코드", msg)
         code = msg.split("연결 코드: ")[1].split()[0]
-        from mcp_server import linkcodes
+        from deukgeuni_server import linkcodes
         self.assertEqual(linkcodes.redeem(app.db, code), "tg:111")
         self.assertIsNone(linkcodes.redeem(app.db, code))  # single use
 
@@ -180,6 +184,88 @@ class BotTests(unittest.TestCase):
         copy_all(Store(data_dir=src), st)
         self.assertIn("합계", run_tool(st, "wl", {"args": "e1rm"}))
         self.assertEqual(sorted(st.docs()), sorted(Store(data_dir=src).docs()))
+
+
+class ThirdPartyTests(unittest.TestCase):
+    """A stranger finds the bot and just starts talking (open signup, operator pays)."""
+
+    def test_stranger_first_message_gets_welcome_and_onboarding(self):
+        llm = ScriptedLLM(["반가워요! 목표부터 알려 주세요."])
+        app = make_app(llm, allowed=())
+        app.handle_update(update(5551, "안녕하세요", 1))
+        texts = [t for _, t in app.tg.sent]
+        self.assertTrue(any("득근이예요" in t and "/delete" in t for t in texts))  # welcome + privacy notice
+        self.assertIn("목표", texts[-1])
+        self.assertIn("skills/onboarding", llm.calls[0]["system"][2].text)
+        self.assertGreater(len(app.store_for("tg:5551").rows("exercises")), 10)
+
+    def test_daily_limits_and_admin_bypass(self):
+        llm = ScriptedLLM(["a", "b", "c", "d"])
+        app = make_app(llm, allowed=(), daily_user_limit=2, admin_ids={9})
+        for i in range(3):
+            app.handle_update(update(7001, f"m{i}", 10 + i))
+        self.assertIn("한도", app.tg.sent[-1][1])
+        self.assertEqual(len(llm.calls), 2)
+        for i in range(2):
+            app.handle_update(update(9, f"admin{i}", 20 + i))
+        self.assertEqual(len(llm.calls), 4)  # admin not limited
+        u = app.db["usage"].find_one({"user_id": "tg:7001"})
+        self.assertEqual(u["bot_calls"], 2)
+
+    def test_export_and_delete(self):
+        import io
+        import zipfile
+        llm = ScriptedLLM([[("wl", {"args": "session add 2026-11-21"})],
+                           [("wl", {"args": "set add 2026-11-21 barbell_back_squat 100x5@8"})], "ok"])
+        app = make_app(llm, allowed=())
+        app.handle_update(update(8001, "스쿼트 100 5개 rpe8", 1))
+        app.handle_update(update(8001, "/export", 2))
+        names = zipfile.ZipFile(io.BytesIO(app.tg.docs[-1][2])).namelist()
+        self.assertIn("deukgeuni-data/sets.csv", names)
+        self.assertIn("deukgeuni-data/profile.md", names)
+        sets_csv = zipfile.ZipFile(io.BytesIO(app.tg.docs[-1][2])).read("deukgeuni-data/sets.csv").decode()
+        self.assertIn("barbell_back_squat", sets_csv)
+        app.handle_update(update(8001, "/delete 확인", 3))           # no prior prompt -> only asks
+        self.assertIn("정말 지울까요", app.tg.sent[-1][1])
+        app.handle_update(update(8001, "/delete 확인", 4))
+        self.assertIn("지웠어요", app.tg.sent[-1][1])
+        for coll in ("sets", "sessions", "exercises", "docs", "conversations", "usage", "accounts"):
+            self.assertEqual(app.db[coll].count_documents({"user_id": "tg:8001"}), 0, coll)
+
+    def test_connect_telegram_to_account_made_in_another_app(self):
+        from deukgeuni_server import accounts, linkcodes
+        app = make_app(ScriptedLLM(["ok"]), allowed=())
+        web_uid = accounts.create_web(app.db, "1.2.3.4")
+        st = app.store_for(web_uid)
+        from wlcore import service
+        service.seed_from_templates(st)
+        service.log_sets(st, "2026-11-22", "barbell_deadlift", [{"weight_kg": 200, "reps": 5, "rpe": 9, "set_type": "top"}])
+        app.handle_update(update(6001, "/start", 1))                 # telegram account created (empty)
+        code = linkcodes.issue(app.db, web_uid)
+        app.handle_update(update(6001, f"/connect {code.lower()}", 2))
+        self.assertIn("연결했어요", app.tg.sent[-1][1])
+        self.assertEqual(app.user_id(6001), web_uid)
+        self.assertEqual(app.db["sets"].count_documents({"user_id": "tg:6001"}), 0)  # empty tg account cleaned up
+        # a Telegram account that already has records is not silently orphaned
+        other = accounts.create_web(app.db, "1.2.3.5")
+        code2 = linkcodes.issue(app.db, other)
+        app.handle_update(update(6001, f"/connect {code2}", 3))
+        self.assertIn("이미 기록", app.tg.sent[-1][1])
+        self.assertEqual(app.user_id(6001), web_uid)
+
+    def test_allowlist_mode_still_available(self):
+        app = make_app(ScriptedLLM([]), allowed=(1,), mode="allowlist")
+        app.handle_update(update(2, "hi", 1))
+        self.assertIn("초대된", app.tg.sent[-1][1])
+
+    def test_signup_rate_limit(self):
+        from deukgeuni_server import accounts
+        app = make_app(ScriptedLLM([]))
+        for _ in range(accounts.SIGNUPS_PER_IP_PER_WINDOW):
+            accounts.create_web(app.db, "9.9.9.9")
+        with self.assertRaises(PermissionError):
+            accounts.create_web(app.db, "9.9.9.9")
+        accounts.create_web(app.db, "9.9.9.10")  # other IPs unaffected
 
 
 class WebhookTests(unittest.TestCase):

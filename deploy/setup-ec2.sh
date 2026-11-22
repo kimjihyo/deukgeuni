@@ -35,7 +35,7 @@ systemctl reload caddy || systemctl restart caddy
 cat <<EOF
 
 설치 완료. 다음 순서:
-  1) sudo nano /etc/deukgeuni/bot.env   (TELEGRAM_BOT_TOKEN, ALLOWED_TELEGRAM_IDS, API 키, WL_MONGO_URI 채우기)
+  1) sudo nano /etc/deukgeuni/bot.env   (TELEGRAM_BOT_TOKEN, API 키, WL_MONGO_URI, ADMIN_TELEGRAM_IDS 채우기)
   2) sudo systemctl start deukgeuni-bot deukgeuni-mcp && sudo journalctl -u deukgeuni-bot -u deukgeuni-mcp -f
   3) curl https://${DOMAIN}/healthz        → ok
   4) sudo -u deukgeuni bash -c 'cd /opt/deukgeuni && set -a && . /etc/deukgeuni/bot.env && set +a && .venv/bin/python -m bot set-webhook'

@@ -209,6 +209,48 @@ class MCPEndToEnd(unittest.TestCase):
                        headers={"Authorization": f"Bearer {personal_b}", "Accept": "application/json, text/event-stream"})
         self.assertEqual(r.status_code, 401)
 
+    def test_5_stranger_signs_up_from_an_app_and_links_telegram(self):
+        h = httpx.Client(base_url=self.base, follow_redirects=False, timeout=10)
+        client_id = h.post("/register", json={"redirect_uris": ["http://localhost:9999/cb"], "client_name": "ChatGPT",
+                                              "token_endpoint_auth_method": "none",
+                                              "grant_types": ["authorization_code", "refresh_token"], "response_types": ["code"]}).json()["client_id"]
+        verifier = secrets.token_urlsafe(48)
+        challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
+        r = h.get("/authorize", params={"response_type": "code", "client_id": client_id, "redirect_uri": "http://localhost:9999/cb",
+                                        "code_challenge": challenge, "code_challenge_method": "S256", "state": "s", "scope": "deukgeuni"})
+        req = parse_qs(urlparse(r.headers["location"]).query)["req"][0]
+        page = h.get("/login", params={"req": req}).text
+        self.assertIn("새로 시작하기", page)
+        self.assertIn("내 기록 불러오기", page)
+        ok = h.post("/login", content=f"req={req}&action=signup", headers={"Content-Type": "application/x-www-form-urlencoded"})
+        self.assertEqual(ok.status_code, 302, ok.text)
+        code = parse_qs(urlparse(ok.headers["location"]).query)["code"][0]
+        tok = h.post("/token", data={"grant_type": "authorization_code", "code": code, "redirect_uri": "http://localhost:9999/cb",
+                                     "client_id": client_id, "code_verifier": verifier}).json()
+
+        async def flow(s, init):
+            state = self.text(await s.call_tool("get_coaching_state", {}))
+            link = self.text(await s.call_tool("get_link_code", {}))
+            return state, link
+
+        state, link = asyncio.run(self.session(tok["access_token"], flow))
+        self.assertIn("새 사용자", state)
+        self.assertIn("skills/onboarding", state)
+        link_code = link.split("연결 코드: ")[1].split()[0]
+        subject = self.db["oauth_tokens"].find_one({"kind": "access", "client_id": client_id})["subject"]
+        self.assertTrue(subject.startswith("u:"))
+
+        # the same person now opens the Telegram bot and connects with that code
+        sys.path.insert(0, str(REPO / "tests"))
+        from test_bot import FakeTelegram, ScriptedLLM, update  # noqa: E402
+        from bot.app import BotApp
+        from bot.config import Config
+        app = BotApp(Config(signup_mode="open", telegram_token="x", llm_model="m"), self.db, ScriptedLLM([]), FakeTelegram(),
+                     mongo_client=self.client)
+        app.handle_update(update(4242, f"/connect {link_code}", 1))
+        self.assertIn("연결했어요", app.tg.sent[-1][1])
+        self.assertEqual(app.user_id(4242), subject)
+
     def test_4_login_brute_force_guard(self):
         h = httpx.Client(base_url=self.base, follow_redirects=False, timeout=10)
         client_id = h.post("/register", json={"redirect_uris": ["http://localhost:9999/cb"], "token_endpoint_auth_method": "none",

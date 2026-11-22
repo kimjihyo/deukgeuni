@@ -32,6 +32,24 @@ class Telegram:
         for chunk in split(text):
             self.call("sendMessage", {"chat_id": chat_id, "text": chunk, "link_preview_options": {"is_disabled": True}})
 
+    def send_document(self, chat_id: int, filename: str, data: bytes, caption: str = "") -> dict:
+        import uuid
+        boundary = uuid.uuid4().hex
+        parts = []
+        for k, v in (("chat_id", str(chat_id)), ("caption", caption)):
+            parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="{filename}"\r\n'
+                     f"Content-Type: application/octet-stream\r\n\r\n".encode() + data + b"\r\n")
+        parts.append(f"--{boundary}--\r\n".encode())
+        req = urllib.request.Request(self.url + "sendDocument", data=b"".join(parts),
+                                     headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.loads(r.read())
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            log.warning("sendDocument failed: %s", e)
+            return {"ok": False}
+
     def typing(self, chat_id: int) -> None:
         self.call("sendChatAction", {"chat_id": chat_id, "action": "typing"}, http_timeout=10)
 

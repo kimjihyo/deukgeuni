@@ -17,7 +17,8 @@ Claude 앱 / ChatGPT / Claude Code ──MCP(HTTPS)──▶ python -m mcp_serve
 
 | 도구 | 하는 일 | 표시 |
 | --- | --- | --- |
-| `get_coaching_state` | 오늘 날짜 + 프로필 + 상태 + 현재 블록 | 읽기 |
+| `get_coaching_state` | 오늘 날짜 + 프로필 + 상태 + 현재 블록 (새 사용자면 온보딩부터 하라는 안내 포함) | 읽기 |
+| `get_link_code` | 다른 앱·텔레그램을 같은 계정에 연결할 일회용 코드 | 쓰기 |
 | `read_knowledge` | skills/, docs/, AGENTS.md 읽기 (비우면 목록) | 읽기 |
 | `get_doc` / `update_doc` | 사용자 문서 읽기 / 덮어쓰기 | 읽기 / 쓰기 |
 | `find_exercise` / `add_exercise` | 운동 찾기 / 추가 | 읽기 / 쓰기 |
@@ -46,12 +47,16 @@ Claude 앱 / ChatGPT / Claude Code ──MCP(HTTPS)──▶ python -m mcp_serve
 
 | 방식 | 쓰는 곳 | 얻는 법 |
 | --- | --- | --- |
-| **OAuth** (자동 등록 + PKCE) | Claude 앱 커스텀 커넥터, ChatGPT | 앱에서 연결 → 득근이 로그인 화면에 **연결 코드** 입력 |
+| **OAuth** (자동 등록 + PKCE) | Claude 앱 커스텀 커넥터, ChatGPT | 앱에서 연결 → 득근이 연결 화면에서 **새로 시작하기**(새 계정) 또는 **연결 코드**(기존 계정) |
 | **개인 토큰** (고정 헤더) | Claude Code, Cursor, Claude 커넥터의 "Request headers" | `python -m mcp_server issue-token --telegram-id <ID> --name laptop` |
 
-연결 코드 받기:
-- 텔레그램 봇에게 `/link` (봇을 쓰는 경우)
+연결 코드 받기 (기존 계정을 다른 앱에 연결할 때):
+- 텔레그램 봇에게 `/link`
+- 이미 연결된 다른 앱의 득근이에게 "연결 코드 줘" (`get_link_code` 도구)
 - 또는 서버에서 `python -m mcp_server issue-code --telegram-id <ID>`
+
+반대로 다른 앱에서 먼저 시작한 사람은 그 앱에서 받은 코드로 텔레그램 봇에 `/connect 코드`.
+"새로 시작하기"는 `SIGNUP_MODE=open`일 때만 보이고, 같은 IP에서 한 시간에 5개까지 만들 수 있다.
 
 코드는 15분, 한 번만 쓸 수 있다. 로그인 화면에서 5번 틀리면 그 연결 요청은 닫힌다.
 토큰은 해시만 저장한다. 접근 토큰 1시간, 갱신 토큰 60일(쓸 때마다 교체).

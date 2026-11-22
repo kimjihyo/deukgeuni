@@ -40,6 +40,7 @@ class Agent:
     def __init__(self, cfg: Config, llm: LLM, memory: Memory, store_factory):
         """store_factory(user_id) -> wlcore Store for that user."""
         self.cfg, self.llm, self.memory, self.store_factory = cfg, llm, memory, store_factory
+        self.last_usage: dict[str, dict] = {}
         self.base_prompt = (REPO / "AGENTS.md").read_text(encoding="utf-8") + "\n\n" + RUNTIME_NOTES + "\n" + skills_index()
 
     def _system(self, store, new_user: bool) -> list[Segment]:
@@ -64,8 +65,13 @@ class Agent:
             system = self._system(store, new_user=new_user)
             messages = self.memory.recent(user_id, self.cfg.history_turns) + [{"role": "user", "content": text}]
             reply_text = ""
+            usage: dict = {}
+            self.last_usage[user_id] = usage  # read by the caller under the same per-user lock
             for _ in range(self.cfg.max_tool_rounds):
                 reply = self.llm.chat(system, messages, TOOLS, user_key=user_id)
+                for k, v in (reply.usage or {}).items():
+                    if isinstance(v, (int, float)):
+                        usage[k] = usage.get(k, 0) + v
                 if not reply.tool_calls:
                     reply_text = reply.text.strip()
                     break

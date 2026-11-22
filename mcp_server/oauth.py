@@ -26,7 +26,7 @@ from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 
-from . import linkcodes
+from deukgeuni_server import accounts, linkcodes
 
 ACCESS_TTL = 60 * 60            # 1 hour
 REFRESH_TTL = 60 * 60 * 24 * 60  # 60 days
@@ -44,8 +44,9 @@ def _now() -> float:
 
 
 class MongoOAuthProvider(OAuthAuthorizationServerProvider):
-    def __init__(self, db, issuer_url: str, resource_url: str):
+    def __init__(self, db, issuer_url: str, resource_url: str, allow_signup: bool = True):
         self.db = db
+        self.allow_signup = allow_signup
         self.issuer_url = issuer_url.rstrip("/")
         self.resource_url = resource_url
         self.clients = db["oauth_clients"]
@@ -74,6 +75,19 @@ class MongoOAuthProvider(OAuthAuthorizationServerProvider):
                                  "client_name": client.client_name or client.client_id, "expires_at": _now() + PENDING_TTL})
         return f"{self.issuer_url}/login?req={req}"
 
+    def complete_signup(self, req: str, ip: str | None) -> str:
+        """'새로 시작하기': create a fresh account and finish the login."""
+        p = self.pending.find_one({"req": req})
+        if not p or p["expires_at"] < _now():
+            raise AuthorizeError("access_denied", "로그인 요청이 만료됨. 앱에서 다시 연결해 주세요.")
+        if not self.allow_signup:
+            raise AuthorizeError("access_denied", "지금은 새 계정을 만들 수 없어요. 연결 코드로 로그인해 주세요.")
+        try:
+            user = accounts.create_web(self.db, ip)
+        except PermissionError as e:
+            raise AuthorizeError("access_denied", str(e))
+        return self._finish(p, user)
+
     def complete_login(self, req: str, link_code: str) -> str:
         """Called by the login page. Returns the client's redirect URL (with code) or raises AuthorizeError."""
         p = self.pending.find_one({"req": req})
@@ -87,7 +101,10 @@ class MongoOAuthProvider(OAuthAuthorizationServerProvider):
                 raise AuthorizeError("access_denied", "코드를 5번 틀려서 이 연결 요청은 닫혔어요. 앱에서 다시 연결해 주세요.")
             self.pending.update_one({"req": req}, {"$set": {"fails": fails}})
             raise AuthorizeError("access_denied", f"연결 코드가 맞지 않거나 만료됨 ({fails}/5)")
-        self.pending.delete_one({"req": req})
+        return self._finish(p, user)
+
+    def _finish(self, p: dict, user: str) -> str:
+        self.pending.delete_one({"req": p["req"]})
         params = AuthorizationParams.model_validate(p["params"])
         code = secrets.token_urlsafe(32)
         self.codes.insert_one({
@@ -185,31 +202,50 @@ h1{{font-size:1.25rem;margin:0 0 4px}} p{{color:var(--muted);margin:0 0 18px;fon
 input{{width:100%;box-sizing:border-box;font:inherit;font-size:1.2rem;letter-spacing:.08em;padding:12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit;text-transform:uppercase}}
 button{{margin-top:14px;width:100%;padding:12px;border:0;border-radius:10px;background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}}
 .err{{color:#c0392b;margin:10px 0 0;font-size:.9rem}}
+h2{{font-size:1rem;margin:22px 0 4px}} .fine{{font-size:.8rem;margin:18px 0 0}}
+.secondary{{background:transparent;color:var(--accent);border:1px solid var(--accent)}}
 </style></head><body><main>
 <h1>득근이 연결</h1>
-<p><b>{client}</b>이(가) 내 운동 기록에 접근하려고 해요. 연결 코드를 넣으면 허용돼요.</p>
+<p><b>{client}</b>에서 득근이를 쓰려고 해요.</p>
+{signup}
+<h2>이미 득근이를 쓰고 있어요</h2>
+<p>텔레그램 득근이에게 <b>/link</b>, 또는 연결된 다른 앱의 득근이에게 "연결 코드 줘"라고 하면 코드를 받을 수 있어요.</p>
 <form method="post" action="/login"><input type="hidden" name="req" value="{req}">
-<input name="code" placeholder="XXXX-XXXX-XXXX" autocomplete="one-time-code" autofocus required>
-<button type="submit">연결하기</button></form>{error}
+<input name="code" placeholder="XXXX-XXXX-XXXX" autocomplete="one-time-code" required>
+<button type="submit">내 기록 불러오기</button></form>{error}
+<p class="fine">기록과 대화는 득근이 서버에 저장돼요. 언제든 내려받거나 지울 수 있어요.</p>
 </main></body></html>"""
 
 
+SIGNUP = """<h2>처음이에요</h2>
+<form method="post" action="/login"><input type="hidden" name="req" value="{req}"><input type="hidden" name="action" value="signup">
+<button type="submit">새로 시작하기</button></form>"""
+
+
 def login_routes(provider: MongoOAuthProvider):
+    def page(p: dict, req: str, error: str = "", status: int = 200) -> HTMLResponse:
+        signup = SIGNUP.format(req=html.escape(req)) if provider.allow_signup else ""
+        err = f'<p class="err">{html.escape(error)}</p>' if error else ""
+        return HTMLResponse(PAGE.format(client=html.escape(p["client_name"]), req=html.escape(req), error=err, signup=signup),
+                            status_code=status)
+
     async def login(request: Request) -> Response:
         if request.method == "GET":
             req = request.query_params.get("req", "")
             p = provider.pending.find_one({"req": req})
             if not p:
                 return HTMLResponse("<p>로그인 요청이 없거나 만료됐어요. 앱에서 다시 연결해 주세요.</p>", status_code=400)
-            return HTMLResponse(PAGE.format(client=html.escape(p["client_name"]), req=html.escape(req), error=""))
+            return page(p, req)
         form = parse_qs((await request.body()).decode())
-        req, code = (form.get("req") or [""])[0], (form.get("code") or [""])[0]
+        req = (form.get("req") or [""])[0]
         try:
-            return RedirectResponse(provider.complete_login(req, code), status_code=302)
+            if (form.get("action") or [""])[0] == "signup":
+                ip = request.client.host if request.client else None
+                return RedirectResponse(provider.complete_signup(req, ip), status_code=302)
+            return RedirectResponse(provider.complete_login(req, (form.get("code") or [""])[0]), status_code=302)
         except AuthorizeError as e:
             p = provider.pending.find_one({"req": req})
             if not p:
                 return HTMLResponse(f"<p>{html.escape(e.error_description or '')}</p>", status_code=400)
-            return HTMLResponse(PAGE.format(client=html.escape(p["client_name"]), req=html.escape(req),
-                                            error=f'<p class="err">{html.escape(e.error_description or "")}</p>'), status_code=400)
+            return page(p, req, e.error_description or "", 400)
     return login

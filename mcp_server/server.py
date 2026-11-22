@@ -25,6 +25,9 @@ from mcp.types import ToolAnnotations  # noqa: E402
 from wlcore import service  # noqa: E402
 from wlcore.store import Store  # noqa: E402
 
+sys.path.insert(0, str(REPO))
+from deukgeuni_server import accounts, linkcodes, usage  # noqa: E402
+
 from .oauth import SCOPE, MongoOAuthProvider, login_routes  # noqa: E402
 
 INSTRUCTIONS = """\
@@ -34,6 +37,7 @@ INSTRUCTIONS = """\
 - 수치(e1RM, 처방 무게, 볼륨)는 반드시 도구로 계산한다. 어림잡지 않는다
 - 근거는 read_knowledge로 docs/evidence의 카드만 인용한다. 없으면 '근거 카드 없음(경험칙)'
 - 모호한 값만 짧게 묻고 나머지는 바로 기록한다. 삭제는 사용자 확인 후 confirm=true
+- 사용자가 다른 앱도 연결하고 싶어 하면 get_link_code로 코드를 준다
 - 코칭에 영향을 줄 말(통증, 일정, 선호)과 다음에 이어갈 일은 update_doc으로 status.md·profile.md에 즉시 적는다
 - 탑세트를 계획보다 더 했다고 지적하지 않는다. 피로 경고는 데이터 신호가 있을 때만
 - 사용자 언어로 짧게. 루틴은 '종목 무게 × 횟수 × 세트 @RPE'
@@ -59,7 +63,9 @@ def build(cfg: dict, db, client=None) -> MCPServer:
     public = cfg["public_url"].rstrip("/")
     resource_url = public + cfg.get("mcp_path", "/mcp")
     tz = ZoneInfo(cfg.get("timezone", "Asia/Seoul"))
-    provider = MongoOAuthProvider(db, issuer_url=public, resource_url=resource_url)
+    provider = MongoOAuthProvider(db, issuer_url=public, resource_url=resource_url,
+                                  allow_signup=cfg.get("allow_signup", True))
+    accounts.ensure_indexes(db)
     mongo_client = client or db.client
 
     mcp = MCPServer(
@@ -83,6 +89,7 @@ def build(cfg: dict, db, client=None) -> MCPServer:
 
     def run(fn, *a, **kw) -> str:
         st = store()
+        usage.record(db, st.backend.user, "mcp", cfg.get("timezone", "Asia/Seoul"))
         try:
             return fn(st, *a, **kw)
         except service.ServiceError as e:
@@ -96,7 +103,24 @@ def build(cfg: dict, db, client=None) -> MCPServer:
     @mcp.tool(annotations=READ, description="프로필·상태(다음 세션, 미해결 질문)·현재 블록 문서를 한 번에 읽는다. 대화 시작 때 먼저 호출.")
     def get_coaching_state() -> str:
         now = datetime.now(tz)
-        return f"오늘: {now:%Y-%m-%d} ({'월화수목금토일'[now.weekday()]}) {now:%H:%M}\n\n" + run(service.coaching_state)
+        head = f"오늘: {now:%Y-%m-%d} ({'월화수목금토일'[now.weekday()]}) {now:%H:%M}\n\n"
+        st = store()
+        try:
+            profile = st.doc("profile.md") or ""
+            if not st.rows("sets") and "- 운동 경력:\n" in profile:
+                head += ("※ 새 사용자다. 먼저 반갑게 인사하고(득근이 소개 한두 줄), read_knowledge('skills/onboarding/SKILL.md')를 읽고 "
+                         "3단계(프로필 인터뷰)부터 진행한다. 데이터 폴더·저장 방식 단계는 이미 준비됐으니 생략. "
+                         "질문은 2–3개씩, 답을 받는 대로 update_doc으로 profile.md에 적는다.\n\n")
+        finally:
+            st.close()
+        return head + run(service.coaching_state)
+
+    @mcp.tool(annotations=WRITE, description="다른 앱(텔레그램 봇, 다른 채팅 앱)을 같은 계정에 연결할 일회용 코드를 만든다 (15분). 사용자가 '연결 코드 줘'라고 할 때.")
+    def get_link_code() -> str:
+        tok = get_access_token()
+        code = linkcodes.issue(db, tok.subject)
+        return (f"연결 코드: {code} (15분, 한 번만)\n- 텔레그램 득근이 봇: /connect {code}\n"
+                "- 다른 채팅 앱: 득근이 커넥터를 추가하면 뜨는 연결 화면의 '내 기록 불러오기'에 입력")
 
     @mcp.tool(annotations=READ, description="득근이 지식 문서 읽기: skills/<이름>/SKILL.md, docs/principles/…, docs/evidence/…, AGENTS.md. path를 비우면 목록.")
     def read_knowledge(path: str = "") -> str:

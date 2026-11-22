@@ -8,6 +8,7 @@
   python -m bot backup --telegram-id 123 --to ../workout-log
                                            MongoDB 사용자 → 파일 데이터 폴더 (csv + 문서). git 커밋은 deploy/backup.sh
   python -m bot remind --telegram-id 123 --message "오늘 운동 안내"
+  python -m bot usage [--days 7]           사용자별·날짜별 사용량 (LLM 토큰 포함)
                                            득근이가 먼저 메시지 보내기 (cron)
 
 환경변수: deploy/.env.example
@@ -42,9 +43,11 @@ def build_app(cfg: Config, need_llm: bool = True):
 
 
 def user_store(cfg: Config, tg_id: int):
-    from .app import user_key
+    sys.path.insert(0, str(REPO))
+    from deukgeuni_server import accounts
     client, db = connect(cfg)
-    return Store(config={"type": "mongodb", "user": user_key(tg_id), "client": client, "database": db.name})
+    uid = accounts.for_telegram(db, tg_id)[0]
+    return Store(config={"type": "mongodb", "user": uid, "client": client, "database": db.name})
 
 
 def copy_all(src: Store, dst: Store) -> str:
@@ -64,6 +67,7 @@ def main(argv=None):
     sp.add_parser("delete-webhook")
     x = sp.add_parser("import-user"); x.add_argument("--telegram-id", type=int, required=True); x.add_argument("--from", dest="src", required=True); x.add_argument("--yes", action="store_true")
     x = sp.add_parser("backup"); x.add_argument("--telegram-id", type=int, required=True); x.add_argument("--to", dest="dst", required=True)
+    x = sp.add_parser("usage"); x.add_argument("--days", type=int, default=7)
     x = sp.add_parser("remind"); x.add_argument("--telegram-id", type=int, action="append", required=True)
     x.add_argument("--message", default="오늘 운동이 있으면 처방을 짧게 알려 주고, 기록이 비어 있는 지난 세션이 있으면 물어봐 줘. 쉬는 날이면 한 줄만.")
     a = p.parse_args(argv)
@@ -73,11 +77,14 @@ def main(argv=None):
 
     if a.cmd == "serve":
         from .server import serve_webhook
-        cfg.require("webhook_secret", "allowed_ids")
+        cfg.require("webhook_secret")
+        if cfg.signup_mode == "allowlist":
+            cfg.require("allowed_ids")
         serve_webhook(build_app(cfg), cfg.listen_host, cfg.listen_port, cfg.webhook_secret)
     elif a.cmd == "poll":
         from .server import poll
-        cfg.require("allowed_ids")
+        if cfg.signup_mode == "allowlist":
+            cfg.require("allowed_ids")
         app = build_app(cfg)
         poll(app, app.tg)
     elif a.cmd == "set-webhook":
@@ -96,7 +103,12 @@ def main(argv=None):
         print("가져옴:", copy_all(Store(data_dir=a.src), dst))
     elif a.cmd == "backup":
         print("내보냄:", copy_all(user_store(cfg, a.telegram_id), Store(data_dir=a.dst)))
-    elif a.cmd == "remind":
+    elif a.cmd == "usage":
+        sys.path.insert(0, str(REPO))
+        from deukgeuni_server import usage
+        _, db = connect(cfg)
+        for r in usage.report(db, a.days):
+            print(r["day"], r["user_id"], {k: v for k, v in r.items() if k not in ("day", "user_id")})
         app = build_app(cfg)
         for tg_id in a.telegram_id:
             print(tg_id, app.remind(tg_id, a.message)[:80])

@@ -43,7 +43,9 @@ cron: 매일 백업(Mongo → 데이터 git 레포), 운동 알림(python -m bot
 sudo nano /etc/deukgeuni/bot.env
 ```
 - `TELEGRAM_BOT_TOKEN`, `ANTHROPIC_API_KEY`(또는 `OPENAI_API_KEY` + `LLM_PROVIDER=openai` + `LLM_MODEL`), `WL_MONGO_URI`
-- `ALLOWED_TELEGRAM_IDS`: 처음엔 비워 두지 말고 아무 숫자나 넣고 시작 → 봇에게 `/whoami` → 나온 ID로 바꾸고 재시작
+- `SIGNUP_MODE=open`(기본): 누구나 봇에게 말을 걸면 바로 시작한다. 혼자 또는 지인만 쓰려면 `allowlist` + `ALLOWED_TELEGRAM_IDS`
+- `ADMIN_TELEGRAM_IDS`: 내 텔레그램 ID (봇에게 `/whoami`). 하루 한도가 적용되지 않는다
+- `DAILY_USER_LIMIT`, `DAILY_TOTAL_LIMIT`: 하루 메시지 한도. 텔레그램 봇의 LLM 비용은 운영자가 내므로 남용을 막는다
 - 파일 권한은 `640 root:deukgeuni` (setup이 맞춰 둠). 이 파일은 절대 git에 올리지 않는다
 
 ## 3. 시작과 웹훅 등록
@@ -73,6 +75,17 @@ sudo -u deukgeuni bash -c 'cd /opt/deukgeuni && set -a && . /etc/deukgeuni/bot.e
 - `python -m bot remind --telegram-id <내ID>`: 득근이가 먼저 메시지 (오늘 처방, 비어 있는 기록 확인)
 - 예시: [`deploy/crontab.example`](../deploy/crontab.example) — 서버 시간대가 UTC면 시각을 UTC로 적는다
 
+## 제3자 사용자
+
+`SIGNUP_MODE=open`이면 따로 할 일이 없다.
+
+- **텔레그램**: 봇을 찾아 아무 말이나 보내면 환영 인사(저장·삭제 안내 포함) → 온보딩 인터뷰 → 첫 블록
+- **다른 앱만 쓰는 사람**: 커넥터 추가 → 연결 화면에서 "새로 시작하기" → 득근이가 온보딩부터
+- **둘 다 쓰는 사람**: 텔레그램 `/link` → 다른 앱 연결 화면에 코드, 또는 다른 앱에서 "연결 코드 줘" → 텔레그램 `/connect 코드`. 한 계정으로 합쳐진다 (기록이 이미 있는 두 계정의 병합은 지원하지 않음)
+- **개인정보**: `/export`(CSV + 문서 zip), `/delete`(확인 후 전부 삭제: 기록·문서·대화·토큰·계정)
+
+운영자는 모든 사용자 데이터를 DB에서 볼 수 있다. 공개 운영 전에 간단한 개인정보 처리 안내(무엇을 저장하는지, 누가 보는지, 지우는 법)를 봇 소개글에 적어 두는 걸 권한다.
+
 ## 운영
 
 | 할 일 | 명령 |
@@ -83,11 +96,12 @@ sudo -u deukgeuni bash -c 'cd /opt/deukgeuni && set -a && . /etc/deukgeuni/bot.e
 | 웹훅 해제 | `python -m bot delete-webhook` |
 | 공개 주소 없이 테스트 | 서비스를 멈추고 `python -m bot poll` (폴링은 웹훅을 자동 해제함. 끝나면 `set-webhook` 다시) |
 | 사용자 대화 맥락 초기화 | 사용자가 봇에게 `/reset` |
+| 사용량 (사용자별 메시지·LLM 토큰, MCP 호출) | `python -m bot usage --days 7` |
 
 ## 보안 체크리스트
 
 - [ ] SSH는 내 IP만, 비밀번호 로그인 끔
-- [ ] `ALLOWED_TELEGRAM_IDS` 설정 (비우면 서버가 시작을 거부함)
+- [ ] 가입 방식 확인 (`SIGNUP_MODE`), 하루 한도 설정, `ADMIN_TELEGRAM_IDS`에 내 ID
 - [ ] 웹훅 비밀값 설정 (요청 헤더가 다르면 401)
 - [ ] Atlas Network Access는 EC2 IP만
 - [ ] LLM 사용 한도·AWS 결제 알림

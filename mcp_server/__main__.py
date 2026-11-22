@@ -7,7 +7,8 @@
   python -m mcp_server list-tokens --telegram-id 123
   python -m mcp_server revoke --telegram-id 123 [--name laptop]   (이름 없으면 이 사용자의 모든 토큰·세션 해제)
 
-환경변수: PUBLIC_URL, WL_MONGO_URI, WL_MONGO_DB, MCP_LISTEN_HOST(127.0.0.1), MCP_LISTEN_PORT(8081), MCP_PATH(/mcp), TIMEZONE
+환경변수: PUBLIC_URL, WL_MONGO_URI, WL_MONGO_DB, MCP_LISTEN_HOST(127.0.0.1), MCP_LISTEN_PORT(8081), MCP_PATH(/mcp), TIMEZONE,
+          SIGNUP_MODE(open: 연결 화면에서 '새로 시작하기' 허용 | allowlist: 연결 코드로만)
 """
 from __future__ import annotations
 
@@ -21,7 +22,8 @@ def config() -> dict:
     if not public.startswith("https://") and not public.startswith("http://127.0.0.1") and not public.startswith("http://localhost"):
         raise SystemExit("PUBLIC_URL 필요 (https://…)")
     return {"public_url": public.rstrip("/"), "mcp_path": e("MCP_PATH", "/mcp"), "timezone": e("TIMEZONE", "Asia/Seoul"),
-            "listen_host": e("MCP_LISTEN_HOST", "127.0.0.1"), "listen_port": int(e("MCP_LISTEN_PORT", "8081"))}
+            "listen_host": e("MCP_LISTEN_HOST", "127.0.0.1"), "listen_port": int(e("MCP_LISTEN_PORT", "8081")),
+            "allow_signup": e("SIGNUP_MODE", "open") == "open"}
 
 
 def connect():

@@ -49,5 +49,6 @@
 
 배포: [`deploy-telegram.md`](deploy-telegram.md)
 
+- 계정: `accounts` 컬렉션. 텔레그램에서 시작하면 `tg:<ID>`, 다른 앱에서 "새로 시작하기"면 `u:<무작위>`. 연결 코드로 텔레그램과 다른 앱을 한 계정에 묶는다 (`deukgeuni_server/accounts.py`)
 - 두뇌는 하나, 데이터 폴더는 사용자마다 (`WL_DATA=/data/<user_id>`)
 - 또는 MongoDB 백엔드 하나에 `user_id`로 구분 (`docs/storage.md`) — 텔레그램 봇이 이 방식
