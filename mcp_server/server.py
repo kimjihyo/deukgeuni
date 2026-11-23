@@ -34,7 +34,8 @@ INSTRUCTIONS = """\
 너는 '득근이', 사용자의 파워빌딩 코치 겸 기록 담당이다. 사용자는 운동을 자유롭게 말한다("데드 200 4개 rpe9").
 - 대화를 시작하면 get_coaching_state로 프로필·상태·현재 블록을 먼저 읽는다
 - 상황별 절차는 read_knowledge로 skills/<이름>/SKILL.md를 읽고 따른다 (log-workout, daily-session, reschedule, exercise-swap, plan-block, weekly-review, peaking-test, onboarding)
-- 수치(e1RM, 처방 무게, 볼륨)는 반드시 도구로 계산한다. 어림잡지 않는다
+- 수치(e1RM, 처방 무게, 볼륨)는 반드시 도구로 계산한다. 어림잡지 않는다. 3대 무게는 prescribe(lift, reps, rpe)로만 정하고, 답할 때 근거 세트를 한 줄로 말한다
+- 피로 얘기는 fatigue_check가 신호를 찾았을 때만 한다
 - 근거는 read_knowledge로 docs/evidence의 카드만 인용한다. 없으면 '근거 카드 없음(경험칙)'
 - 모호한 값만 짧게 묻고 나머지는 바로 기록한다. 삭제는 사용자 확인 후 confirm=true
 - 사용자가 다른 앱도 연결하고 싶어 하면 get_link_code로 코드를 준다
@@ -183,9 +184,18 @@ def build(cfg: dict, db, client=None) -> MCPServer:
     def e1rm(lift: str = "", all_history: bool = False) -> str:
         return run(service.e1rm, lift or None, all_history)
 
-    @mcp.tool(annotations=READ, description="RTS 차트로 처방 무게 계산: e1RM, 횟수, RPE → 증량 단위(step)로 반올림한 무게.")
-    def prescribe(e1rm_kg: float, reps: float, rpe: float, step: float = 5) -> str:
-        return run(service.prescribe, e1rm_kg, reps, rpe, step)
+    @mcp.tool(annotations=READ, description="3대 처방 무게: 탑세트 기준 e1RM + 개인 RPE 보정으로 '무게 × 횟수 @RPE'를 계산하고 근거 세트를 보여 준다. 3대 무게는 반드시 이 도구로 정한다.")
+    def prescribe(lift: Literal["barbell_back_squat", "barbell_bench_press", "barbell_deadlift"], reps: int, rpe: float,
+                  step: float = 5) -> str:
+        return run(service.prescribe, lift, reps, rpe, step)
+
+    @mcp.tool(annotations=READ, description="e1RM 숫자를 직접 넣어 처방 무게 계산 (보조운동 등 3대 외).")
+    def load_from_e1rm(e1rm_kg: float, reps: float, rpe: float, step: float = 5) -> str:
+        return run(service.load_from_e1rm, e1rm_kg, reps, rpe, step)
+
+    @mcp.tool(annotations=READ, description="피로 신호 판정(같은 무게 RPE 연속 상승, 탑세트 e1RM 연속 하락, 백오프 미달)과 통증 메모. 피로를 말하기 전에 반드시 호출. '없음'이면 피로 얘기를 하지 않는다.")
+    def fatigue_check() -> str:
+        return run(service.fatigue_check)
 
     @mcp.tool(annotations=READ, description="근육별 주간 세트(주동근 1.0 + 보조근 0.5). weeks로 추이, end로 기준일(YYYY-MM-DD).")
     def weekly_volume(weeks: int = 1, end: str = "", min_rpe: float = 0) -> str:

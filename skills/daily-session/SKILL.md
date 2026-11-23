@@ -11,9 +11,10 @@ description: "오늘 루틴·워밍업·탑세트 무게를 물을 때. 블록 �
 
 1. `status.md`의 다음 세션과 현재 블록 문서의 해당 주차 처방을 확인
 2. 처방 무게가 정해져 있지 않으면 계산
-   - 현재 e1RM: `wl.py e1rm --lift <id>` (최근 실제 탑세트 기준)
-   - 무게: `wl.py load <e1RM> <횟수> <RPE> --step <증량단위>`
-   - 직전 세션 탑세트가 목표보다 RPE 1 이상 높았으면 그 세션의 실제 e1RM 기준 (`docs/principles/progression.md`)
+   - **3대는 반드시** `wl.py prescribe --lift <id> --reps <횟수> --rpe <RPE>`. e1RM 숫자를 직접 고르거나 `load`에 넣지 않는다
+     (탑세트 기준 e1RM + 개인 RPE 보정을 도구가 정한다. 고반복·다른 리프트 직후 세트는 자동 제외)
+   - 답할 때 근거를 한 줄로: "근거: 11/23 140×4@10, 11/9 150×1@9 → e1RM 158"
+   - 보조운동: 지난 기록(`wl.py query sets exercise_id=<id>`)으로 이중 진행. 필요하면 `wl.py load <e1RM> <횟수> <RPE>`
 3. 같은 날 앞 운동의 영향 반영 (예: 벤치 탑이 무거웠으면 OHP 낮춤)
 4. 사용자 규칙 적용 (`profile.md`: 평일 종목 수, 장비, 싫어하는 종목, 스트랩 등)
 

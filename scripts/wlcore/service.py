@@ -223,8 +223,23 @@ def e1rm(store: Store, lift: str | None = None, all_history: bool = False) -> st
     return run_wl(store, ["e1rm"] + (["--lift", lift] if lift else []) + (["--all"] if all_history else []))
 
 
-def prescribe(store: Store, e1rm_kg: float, reps: float, rpe: float, step: float = 5) -> str:
+def prescribe(store: Store, lift: str, reps: int, rpe: float, step: float = 5) -> str:
+    """Main lifts: weight from the top-set estimate + personal calibration (see wlcore/estimate.py)."""
+    from . import estimate as est
+    return est.prescribe(store.rows("sets"), lift, int(reps), rpe, step)
+
+
+def load_from_e1rm(store: Store, e1rm_kg: float, reps: float, rpe: float, step: float = 5) -> str:
     return run_wl(store, ["load", f"{e1rm_kg:g}", f"{reps:g}", f"{rpe:g}", "--step", f"{step:g}"])
+
+
+def strength_estimate(store: Store, lift: str | None = None) -> str:
+    return run_wl(store, ["estimate"] + (["--lift", lift] if lift else []))
+
+
+def fatigue_check(store: Store) -> str:
+    from . import estimate as est
+    return est.fatigue(store.rows("sets"), store.rows("sessions"))
 
 
 def weekly_volume(store: Store, weeks: int = 1, end: str | None = None, min_rpe: float = 0) -> str:

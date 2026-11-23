@@ -3,9 +3,12 @@
 표준 라이브러리만 사용. 데이터 위치는 WL_DATA > .wl-data 파일 > ./data, 저장 방식은 <데이터>/config.toml (docs/storage.md).
 
 계산
-  wl.py e1rm [--lift ID] [--all]          3대 e1RM 추이 + 현재 추정치
+  wl.py prescribe --lift barbell_bench_press --reps 3 --rpe 8   ★ 처방 무게 (탑세트 기준 e1RM + 개인 보정, 근거 표시)
+  wl.py estimate [--lift ID]              처방에 쓰는 e1RM 추정과 근거 세트·제외 세트
+  wl.py fatigue                           피로 신호 판정 (같은 조건 세트끼리만 비교)
+  wl.py e1rm [--lift ID] [--all]          3대 e1RM 추이(참고) + 현재 추정치
   wl.py pct 3 8                           RTS 표: 3회 @RPE8 = 몇 %
-  wl.py load 200 3 8 [--step 5]           e1RM 200일 때 3회 @8 처방 무게
+  wl.py load 200 3 8 [--step 5]           e1RM 숫자를 직접 넣어 계산 (보조운동 등. 3대는 prescribe를 쓴다)
 
 기록
   wl.py session add 2026-11-21 --title "스쿼트 헤비" [--block C --day W2D1 --status planned --notes ..]
@@ -45,6 +48,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from wlcore import backends  # noqa: E402
 from wlcore.model import SETS, TABLES, key_of  # noqa: E402
+from wlcore import estimate as estimate_mod  # noqa: E402
 from wlcore.rts import e1rm, pct, usable  # noqa: E402
 from wlcore.store import Store  # noqa: E402
 
@@ -99,18 +103,30 @@ def cmd_e1rm(a, st):
         for d in dates if a.all else dates[-6:]:
             print(f"  {d}  {best[d][1]:<14} e1RM {best[d][0]:6.1f}")
         if dates:
-            last = date.fromisoformat(dates[-1])
-            recent = sorted(best[d][0] for d in dates if date.fromisoformat(d) >= last - timedelta(days=a.window))
-            n = len(recent)
-            cur = recent[n // 2] if n % 2 else (recent[n // 2 - 1] + recent[n // 2]) / 2
-            total += cur
-            print(f"  현재 추정(최근 {a.window}일 세션 최고값의 중앙값): {cur:.1f}  | 최고 {recent[-1]:.1f}")
+            est = estimate_mod.estimate(sets, lift)
+            if est.value is not None:
+                total += est.value
+                print(f"  현재 추정(탑세트 기준, 처방에 쓰는 값): {est.value:.1f}  | 위 표의 최고 {max(v for v, _ in best.values()):.1f}")
+                print("  (위 표는 모든 세트를 섞은 참고값. 처방은 `wl.py prescribe --lift`)")
     if not a.lift:
-        print(f"\n합계 ≈ {total:.0f} kg")
+        print(f"\n합계 ≈ {total:.0f} kg (탑세트 기준 추정의 합)")
 
 
 def cmd_pct(a, st):
     print(f"{a.reps:g}회 @RPE{a.rpe:g} = {pct(a.reps, a.rpe):.1f}%")
+
+
+def cmd_estimate(a, st):
+    for lift in [a.lift] if a.lift else estimate_mod.MAIN:
+        print(estimate_mod.estimate(st.rows("sets"), lift, a.as_of).text())
+
+
+def cmd_prescribe(a, st):
+    print(estimate_mod.prescribe(st.rows("sets"), a.lift, a.reps, a.rpe, a.step, a.as_of))
+
+
+def cmd_fatigue(a, st):
+    print(estimate_mod.fatigue(st.rows("sets"), st.rows("sessions"), a.as_of))
 
 
 def cmd_load(a, st):
@@ -312,6 +328,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     x = sp.add_parser("e1rm"); x.add_argument("--lift"); x.add_argument("--all", action="store_true"); x.add_argument("--window", type=int, default=21); x.set_defaults(f=cmd_e1rm)
     x = sp.add_parser("pct"); x.add_argument("reps", type=float); x.add_argument("rpe", type=float); x.set_defaults(f=cmd_pct)
+    x = sp.add_parser("estimate"); x.add_argument("--lift"); x.add_argument("--as-of"); x.set_defaults(f=cmd_estimate)
+    x = sp.add_parser("prescribe"); x.add_argument("--lift", required=True); x.add_argument("--reps", type=int, required=True)
+    x.add_argument("--rpe", type=float, required=True); x.add_argument("--step", type=float, default=5); x.add_argument("--as-of"); x.set_defaults(f=cmd_prescribe)
+    x = sp.add_parser("fatigue"); x.add_argument("--as-of"); x.set_defaults(f=cmd_fatigue)
     x = sp.add_parser("load"); x.add_argument("e1rm", type=float); x.add_argument("reps", type=float); x.add_argument("rpe", type=float); x.add_argument("--step", type=float, default=5); x.set_defaults(f=cmd_load)
 
     ss = sp.add_parser("session").add_subparsers(dest="sub", required=True)

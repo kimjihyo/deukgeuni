@@ -29,7 +29,9 @@ Claude 앱 / ChatGPT / Claude Code ──MCP(HTTPS)──▶ python -m mcp_serve
 | `get_session` | 그날 요약 + 세트별 e1RM | 읽기 |
 | `exercise_history` | 종목별 최근 기록 | 읽기 |
 | `e1rm` | e1RM 추이·현재 추정 | 읽기 |
-| `prescribe` | e1RM·횟수·RPE → 처방 무게 | 읽기 |
+| `prescribe` | 3대 처방: 리프트·횟수·RPE → 무게 (탑세트 기준 e1RM + 개인 보정, 근거 세트 표시) | 읽기 |
+| `load_from_e1rm` | e1RM 숫자로 무게 계산 (보조운동 등) | 읽기 |
+| `fatigue_check` | 피로 신호 판정 (같은 조건 세트끼리만) | 읽기 |
 | `weekly_volume` | 근육별 주간 세트 | 읽기 |
 
 도구마다 읽기 전용·파괴적 여부 표시(MCP tool annotations)가 있어서, 앱이 쓰기·삭제 전에 승인을 묻는다.

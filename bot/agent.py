@@ -19,6 +19,7 @@ RUNTIME_NOTES = """\
 
 - 셸·파일 접근이 없다. 아래 도구만 쓴다:
   - `wl`: `python3 scripts/wl.py <인자>` 대신 args에 `<인자>`만 넣는다 (예: "show 2026-11-21"). 이 사용자 데이터에만 적용된다
+    - 3대 무게: "prescribe --lift barbell_bench_press --reps 3 --rpe 8" / 피로: "fatigue" / 현재 수준: "estimate"
   - `read_knowledge`: skills/·docs/·AGENTS.md 읽기. 상황에 맞는 skill(`skills/<이름>/SKILL.md`)을 먼저 읽고 따른다
   - `user_doc_get` / `user_doc_put`: 이 사용자의 profile.md, status.md, history.md, blocks/*.md
 - 데이터 폴더 찾기, git 커밋·푸시, `.wl-data`는 신경 쓰지 않는다. 저장은 즉시 반영된다

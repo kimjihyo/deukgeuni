@@ -129,7 +129,8 @@ class MCPEndToEnd(unittest.TestCase):
                 "sets": [{"weight_kg": 170, "reps": 4, "rpe": 9, "set_type": "top", "target": "165x3+@8"},
                          {"weight_kg": 150, "reps": 3, "rpe": 7.5, "set_type": "backoff", "times": 3}]}))
             out["e1rm"] = self.text(await s.call_tool("e1rm", {"lift": "barbell_back_squat"}))
-            out["presc"] = self.text(await s.call_tool("prescribe", {"e1rm_kg": 197, "reps": 3, "rpe": 8}))
+            out["presc"] = self.text(await s.call_tool("prescribe", {"lift": "barbell_back_squat", "reps": 3, "rpe": 8}))
+            out["fatigue"] = self.text(await s.call_tool("fatigue_check", {}))
             out["edit"] = self.text(await s.call_tool("edit_set", {"session_id": "2026-11-21", "exercise_id": "barbell_back_squat",
                                                                    "set_no": 1, "changes": {"note": "정정 테스트"}}))
             out["del_no"] = self.text(await s.call_tool("delete_set", {"session_id": "2026-11-21", "exercise_id": "barbell_back_squat", "set_no": 4}))
@@ -163,6 +164,8 @@ class MCPEndToEnd(unittest.TestCase):
         self.assertIn("e1RM 197", out["log"])
         self.assertIn("197.0", out["e1rm"])
         self.assertIn("170 kg", out["presc"])
+        self.assertIn("근거 2026-11-21 170x4@9", out["presc"])
+        self.assertIn("피로 신호: 없음", out["fatigue"])
         self.assertIn("note", out["edit"])
         self.assertIn("confirm", out["del_no"])
         self.assertIn("1행 삭제", out["del_yes"])

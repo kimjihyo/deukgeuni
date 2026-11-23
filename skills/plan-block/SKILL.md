@@ -10,7 +10,7 @@ description: "새 블록이 필요하거나 블록이 끝났을 때, 목표가 �
 ## 입력
 
 - `profile.md`: 목표 유형·구체 목표·기한, 요일·시간, 장비, 약점, 개인 규칙
-- 현재 수준: `wl.py e1rm`, `wl.py volume --weeks 4`
+- 현재 수준: `wl.py estimate`, `wl.py volume --weeks 4`, `wl.py fatigue`
 - 지난 블록 회고 (`history.md`, 지난 블록 문서)
 - 목표별 문서 `docs/goals/<goal>.md`와 템플릿 `docs/programs/<goal>/`
 
@@ -23,7 +23,7 @@ description: "새 블록이 필요하거나 블록이 끝났을 때, 목표가 �
    - 평일 짧으면 평일 3–4종목, 팔·고립은 주말
    - 약점 부위 세트 +2–4
 4. **메인 리프트 진행표**: 템플릿 표를 그대로 쓰되 정체 리프트는 볼륨 날 세트 +1 등 조정
-5. **첫 주 무게 계산**: `wl.py load` (현재 e1RM 기준, 증량 단위 반올림)
+5. **첫 주 무게 계산**: 3대는 `wl.py prescribe --lift <id> --reps <n> --rpe <r>`, 보조는 지난 기록 기준
 6. **목표 현실성 점검**: 현재 e1RM과 목표 차이를 블록 수로 나눠 보고, 너무 크면 솔직하게 말하고 대안(기한·목표 조정) 제시
 7. **저장**
    - 데이터 폴더 `blocks/<이름>.md` (`docs/programs/block-template.md` 형식): 목표, 설계 근거(카드 링크), 주간 구성, 진행표, 보조, 블록 전용 규칙, W1 처방

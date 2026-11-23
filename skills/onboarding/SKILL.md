@@ -45,7 +45,7 @@ python3 scripts/wl.py import /tmp/seed.jsonl --yes
 
 ## 4. 최근 기록 받기 (있으면)
 
-최근 2–4주 기록을 받으면 `skills/log-workout/SKILL.md`대로 기록 → `wl.py e1rm`, `wl.py volume --weeks 4`로 현재 수준 파악.
+최근 2–4주 기록을 받으면 `skills/log-workout/SKILL.md`대로 기록 → `wl.py estimate`, `wl.py volume --weeks 4`로 현재 수준 파악.
 없으면 첫 주를 RPE로 처방해서 그 결과로 e1RM을 잡는다.
 
 ## 5. 첫 블록
